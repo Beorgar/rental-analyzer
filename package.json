@@ -1,0 +1,33 @@
+{
+  "name": "rental-analyzer",
+  "version": "1.0.0",
+  "description": "Short-term rental property analyzer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "client": "cd client && npm start",
+    "dev:all": "concurrently \"npm run dev\" \"npm run client\"",
+    "install:all": "npm install && cd client && npm install",
+    "build": "cd client && npm install && npm run build",
+    "vercel-build": "echo 'Build configured in vercel.json'"
+  },
+  "keywords": ["rental", "analyzer", "airbnb", "booking"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "stripe": "^14.10.0",
+    "@anthropic-ai/sdk": "^0.20.0",
+    "apify-client": "^2.8.0",
+    "axios": "^1.6.0",
+    "nodemailer": "^6.9.0",
+    "@vercel/node": "^3.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "concurrently": "^8.2.2"
+  }
+}

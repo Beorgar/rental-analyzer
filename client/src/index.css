@@ -1,0 +1,276 @@
+/* Payment Page Styles */
+
+.payment-container {
+  width: 100%;
+}
+
+.payment-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.payment-header h2 {
+  font-size: 2rem;
+  color: #2c3e50;
+  margin-bottom: 15px;
+}
+
+.order-summary-compact {
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  margin-top: 15px;
+}
+
+.order-summary-compact p {
+  margin: 5px 0;
+  color: #2c3e50;
+}
+
+.location-text {
+  color: #777 !important;
+  font-size: 0.95rem;
+}
+
+.payment-form {
+  width: 100%;
+}
+
+.form-group {
+  margin-bottom: 25px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  font-size: 1rem;
+}
+
+.form-group small {
+  display: block;
+  color: #777;
+  font-size: 0.85rem;
+  margin-top: 5px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 15px;
+  font-size: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.card-element-container {
+  padding: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  transition: border-color 0.3s ease;
+}
+
+.card-element-container:focus-within {
+  border-color: #667eea;
+}
+
+/* Pricing Section */
+
+.pricing-section {
+  margin: 30px 0;
+}
+
+.price-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.price-item.base-report {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.price-item h3 {
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+}
+
+.price-item ul {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0 0;
+}
+
+.price-item li {
+  padding: 5px 0;
+  position: relative;
+  padding-left: 20px;
+}
+
+.price-item li:before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  font-weight: bold;
+}
+
+.price {
+  font-size: 1.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Upsells */
+
+.upsells {
+  margin-top: 30px;
+}
+
+.upsells h3 {
+  font-size: 1.5rem;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+.upsell-item {
+  display: flex;
+  gap: 15px;
+  padding: 20px;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  align-items: flex-start;
+}
+
+.upsell-item:hover {
+  border-color: #667eea;
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+}
+
+.upsell-item.selected {
+  background: #f0f4ff;
+  border-color: #667eea;
+  border-width: 3px;
+}
+
+.upsell-checkbox {
+  flex-shrink: 0;
+  padding-top: 3px;
+}
+
+.upsell-checkbox input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.upsell-content {
+  flex: 1;
+}
+
+.upsell-content h4 {
+  font-size: 1.2rem;
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+.upsell-content p {
+  color: #555;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.upsell-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #667eea;
+  white-space: nowrap;
+  padding-top: 5px;
+}
+
+/* Total Section */
+
+.total-section {
+  margin: 30px 0;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.total-amount {
+  font-size: 2rem;
+  color: #667eea;
+}
+
+/* Submit Button */
+
+.submit-payment-btn {
+  width: 100%;
+  padding: 18px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+}
+
+.submit-payment-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+}
+
+.submit-payment-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.security-note {
+  text-align: center;
+  color: #777;
+  font-size: 0.9rem;
+  margin-top: 15px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .price-item {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .upsell-item {
+    flex-direction: column;
+  }
+
+  .upsell-price {
+    align-self: flex-start;
+  }
+}
