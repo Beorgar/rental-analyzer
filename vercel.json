@@ -8,11 +8,5 @@
         "distDir": "build"
       }
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/client/build/$1"
-    }
   ]
 }
