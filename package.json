@@ -10,7 +10,7 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run client\"",
     "install:all": "npm install && cd client && npm install",
     "build": "cd client && npm install && npm run build",
-    "vercel-build": "echo 'Build configured in vercel.json'"
+    "vercel-build": "cd client && npm install && npm run build && mv build ../public"
   },
   "keywords": ["rental", "analyzer", "airbnb", "booking"],
   "author": "",
