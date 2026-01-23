@@ -1,0 +1,10 @@
+{
+  "name": "rental-analyzer-api",
+  "version": "1.0.0",
+  "dependencies": {
+    "stripe": "^14.10.0",
+    "@anthropic-ai/sdk": "^0.20.0",
+    "apify-client": "^2.8.0",
+    "nodemailer": "^6.9.0"
+  }
+}
