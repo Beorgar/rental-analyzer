@@ -93,6 +93,20 @@ async function scrapeBookingProperty(url, apifyClient) {
     const property = items[0];
 
     // Transform Apify data to our format
+    // Note: Booking.com uses 0-10 rating scale
+    const rating = parseFloat(property.reviewScore || property.rating || 0);
+
+    // Handle images - can be array of strings or objects
+    let imageUrls = [];
+    if (property.images) {
+      imageUrls = property.images.map(img => {
+        if (typeof img === 'string') return img;
+        if (img.url) return img.url;
+        if (img.photo) return img.photo;
+        return null;
+      }).filter(Boolean);
+    }
+
     return {
       id: property.id || property.hotel_id,
       url: property.url || url,
@@ -107,7 +121,7 @@ async function scrapeBookingProperty(url, apifyClient) {
       },
       description: property.description || '',
       amenities: property.facilities || property.amenities || [],
-      images: property.images?.map(img => img.url || img) || [],
+      images: imageUrls,
       pricing: {
         basePrice: parseFloat(property.price || property.minPrice || 100),
         currency: property.currency || 'EUR',
@@ -120,8 +134,8 @@ async function scrapeBookingProperty(url, apifyClient) {
         bathrooms: 1,
       },
       rating: {
-        average: parseFloat(property.rating || property.reviewScore || 0),
-        reviewCount: parseInt(property.reviewCount || property.reviews_count || 0),
+        average: rating, // Booking uses 0-10 scale
+        reviewCount: parseInt(property.reviewCount || property.reviews || property.numberOfReviews || 0),
       },
     };
   } catch (error) {
@@ -132,23 +146,25 @@ async function scrapeBookingProperty(url, apifyClient) {
 }
 
 function getDemoData(url, platform) {
+  // Demo data using Booking.com format (10-point rating scale)
   return {
     id: Math.random().toString(36).substr(2, 9),
     url,
     platform,
     title: "Paul's Studio - Ski Apartment in Kaprun",
     location: {
-      address: 'Kaprun, Austria',
+      address: 'Nikolaus-Gassner-Promenade, 5710 Kaprun, Austria',
       city: 'Kaprun',
       country: 'Austria',
       latitude: 47.2695,
       longitude: 12.7621,
     },
-    description: 'Cozy studio apartment perfect for ski holidays near Kaprun ski resort.',
-    amenities: ['WiFi', 'Kitchen', 'Heating', 'TV', 'Free Parking', 'Ski Storage', 'Near Ski Lifts'],
+    description: 'Cozy studio apartment perfect for ski holidays. Located in Kaprun near Kitzsteinhorn glacier and Zell am See. Features modern amenities and easy access to ski lifts.',
+    amenities: ['Free WiFi', 'Kitchen', 'Heating', 'Flat-screen TV', 'Free Parking', 'Ski Storage', 'Near Ski Lifts', 'Mountain View'],
     images: [
       'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
       'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
+      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
     ],
     pricing: {
       basePrice: 95,
@@ -156,14 +172,14 @@ function getDemoData(url, platform) {
       cleaningFee: 30,
     },
     capacity: {
-      guests: 2,
+      guests: 4,
       bedrooms: 1,
-      beds: 1,
+      beds: 2,
       bathrooms: 1,
     },
     rating: {
-      average: 4.7,
-      reviewCount: 89,
+      average: 8.5, // Booking.com uses 0-10 scale
+      reviewCount: 127,
     },
   };
 }
