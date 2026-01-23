@@ -43,3 +43,8 @@ coverage/
 
 # Misc
 .cache/
+
+# Vercel
+.vercel/
+setup-instructions.html
+setup-vercel-env.ps1
