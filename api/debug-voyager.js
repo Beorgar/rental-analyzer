@@ -12,17 +12,30 @@ module.exports = async (req, res) => {
 
     const url = 'https://www.booking.com/hotel/at/paul-39-s-studio.ru.html?aid=356980&label=gog235jc-10CAsoDkIQcGF1bC0zOS1zLXN0dWRpb0gzWANoDogBAZgBM7gBF8gBDNgBA-gBAfgBAYgCAagCAbgC2JrKywbAAgHSAiQxYTFiZWU3OC1lZTZiLTQ2NDgtOGFjYi1iMDI4MjhhNWEyYjTYAgHgAgE';
 
-    let html = '<h1>🚀 Voyager Booking Scraper Test</h1>';
+    // Calculate dates (30 days from now + 1 night)
+    const checkIn = new Date();
+    checkIn.setDate(checkIn.getDate() + 30);
+    const checkOut = new Date(checkIn);
+    checkOut.setDate(checkOut.getDate() + 1);
+
+    const checkInStr = checkIn.toISOString().split('T')[0];
+    const checkOutStr = checkOut.toISOString().split('T')[0];
+
+    let html = '<h1>🚀 Voyager Booking Scraper Test (WITH DATES)</h1>';
     html += `<p><strong>Testing URL:</strong> ${url}</p>`;
+    html += `<p><strong>Check-in:</strong> ${checkInStr}</p>`;
+    html += `<p><strong>Check-out:</strong> ${checkOutStr}</p>`;
     html += '<p>⏳ Starting voyager/booking-scraper...</p>';
     html += '<hr>';
 
-    // Run voyager/booking-scraper
+    // Run voyager/booking-scraper WITH dates
     const run = await apifyClient.actor('voyager/booking-scraper').call({
       startUrls: [{ url }],
       maxItems: 1,
       currency: 'EUR',
       language: 'en-gb',
+      checkIn: checkInStr,
+      checkOut: checkOutStr,
     });
 
     const executionTime = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -42,38 +55,29 @@ module.exports = async (req, res) => {
     } else {
       const property = items[0];
 
-      html += '<h3>🔍 Raw JSON Structure:</h3>';
-      html += `<pre style="background: #f0f0f0; padding: 15px; overflow-x: auto; max-height: 600px;">${JSON.stringify(property, null, 2)}</pre>`;
-
-      html += '<hr>';
-      html += '<h3>📋 Available Fields:</h3>';
-      html += '<ul>';
-      for (const key of Object.keys(property)) {
-        const value = property[key];
-        const type = typeof value;
-        const extra = Array.isArray(value) ? ` (array, length: ${value.length})` : '';
-        html += `<li><strong>${key}:</strong> ${type}${extra}</li>`;
-      }
+      html += '<h3>💰 PRICE INFORMATION:</h3>';
+      html += '<ul style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107;">';
+      html += `<li><strong>property.price:</strong> ${property.price || 'NULL'}</li>`;
+      html += `<li><strong>property.currency:</strong> ${property.currency || 'NULL'}</li>`;
+      html += `<li><strong>property.checkInDate:</strong> ${property.checkInDate || 'NULL'}</li>`;
+      html += `<li><strong>property.checkOutDate:</strong> ${property.checkOutDate || 'NULL'}</li>`;
       html += '</ul>';
 
       html += '<hr>';
       html += '<h3>🎯 Key Values for Mapping:</h3>';
       html += '<ul>';
       html += `<li><strong>name:</strong> ${property.name || 'N/A'}</li>`;
-      html += `<li><strong>description:</strong> ${property.description ? property.description.substring(0, 100) + '...' : 'N/A'}</li>`;
-      html += `<li><strong>address:</strong> ${property.address || 'N/A'}</li>`;
-      html += `<li><strong>city:</strong> ${property.city || 'N/A'}</li>`;
-      html += `<li><strong>country:</strong> ${property.country || 'N/A'}</li>`;
+      html += `<li><strong>city:</strong> ${JSON.stringify(property.address) || 'N/A'}</li>`;
       html += `<li><strong>rating:</strong> ${property.rating || 'N/A'}</li>`;
-      html += `<li><strong>stars:</strong> ${property.stars || 'N/A'}</li>`;
       html += `<li><strong>reviews:</strong> ${property.reviews || 'N/A'}</li>`;
-      html += `<li><strong>price:</strong> ${property.price || 'N/A'}</li>`;
-      html += `<li><strong>currency:</strong> ${property.currency || 'N/A'}</li>`;
-      html += `<li><strong>images:</strong> ${property.images ? `array with ${property.images.length} items` : 'N/A'}</li>`;
-      if (property.images && property.images.length > 0) {
-        html += `<li><strong>images[0]:</strong> ${typeof property.images[0]} - ${typeof property.images[0] === 'string' ? property.images[0].substring(0, 80) + '...' : JSON.stringify(property.images[0])}</li>`;
-      }
+      html += `<li><strong>hostInfo.welcomeMessage:</strong> ${property.hostInfo?.welcomeMessage ? property.hostInfo.welcomeMessage.substring(0, 100) + '...' : 'N/A'}</li>`;
+      html += `<li><strong>images count:</strong> ${property.images ? property.images.length : 'N/A'}</li>`;
+      html += `<li><strong>facilities count:</strong> ${property.facilities ? property.facilities.length : 'N/A'}</li>`;
       html += '</ul>';
+
+      html += '<hr>';
+      html += '<h3>🔍 Full Raw JSON:</h3>';
+      html += `<pre style="background: #f0f0f0; padding: 15px; overflow-x: auto; max-height: 600px;">${JSON.stringify(property, null, 2)}</pre>`;
     }
 
     html += `<hr><p><strong>Total execution time:</strong> ${executionTime}s</p>`;
