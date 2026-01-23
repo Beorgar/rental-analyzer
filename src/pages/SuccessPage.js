@@ -51,12 +51,37 @@ function SuccessPage() {
               {selectedUpsells?.description && (
                 <div className="order-item">
                   <div className="order-item-icon">✍️</div>
-                  <div>
-                    <h4>Улучшение описания объекта</h4>
-                    <p style={{ color: '#555' }}>
-                      Наш копирайтер свяжется с вами в течение 24 часов для уточнения
-                      деталей
-                    </p>
+                  <div style={{ width: '100%' }}>
+                    <h4>Улучшение описания объекта с помощью AI</h4>
+
+                    <div style={{ marginTop: '15px' }}>
+                      <div style={{
+                        background: '#fff',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        borderLeft: '3px solid #e0e0e0',
+                        marginBottom: '10px'
+                      }}>
+                        <strong style={{ color: '#999', fontSize: '0.9rem' }}>❌ Было:</strong>
+                        <p style={{ color: '#666', margin: '8px 0 0 0', fontSize: '0.95rem' }}>
+                          "Уютная квартира в центре города. Есть кухня и балкон."
+                        </p>
+                      </div>
+
+                      <div style={{
+                        background: '#f0f9ff',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        borderLeft: '3px solid #667eea'
+                      }}>
+                        <strong style={{ color: '#667eea', fontSize: '0.9rem' }}>✨ Стало:</strong>
+                        <p style={{ color: '#555', margin: '8px 0 0 0', fontSize: '0.95rem' }}>
+                          "Просторная квартира в самом сердце города с панорамными видами.
+                          Полностью оборудованная кухня с современной техникой и уютный балкон
+                          для утреннего кофе создают идеальные условия для комфортного отдыха."
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -64,12 +89,45 @@ function SuccessPage() {
               {selectedUpsells?.photos && (
                 <div className="order-item">
                   <div className="order-item-icon">📸</div>
-                  <div>
-                    <h4>Улучшение фотографий</h4>
-                    <p style={{ color: '#555' }}>
-                      Наш фотограф свяжется с вами в течение 24 часов для обсуждения
-                      деталей съемки или обработки
+                  <div style={{ width: '100%' }}>
+                    <h4>Улучшение фотографий с помощью AI</h4>
+                    <p style={{ color: '#555', marginBottom: '15px' }}>
+                      Мы берем фотографии вашей квартиры и улучшаем их с помощью AI:
                     </p>
+
+                    <ul style={{
+                      listStyle: 'none',
+                      padding: 0,
+                      color: '#555',
+                      fontSize: '0.95rem',
+                      lineHeight: '1.8'
+                    }}>
+                      <li style={{ paddingLeft: '25px', position: 'relative', marginBottom: '8px' }}>
+                        <span style={{ position: 'absolute', left: 0, color: '#667eea' }}>✨</span>
+                        Профессиональная цветокоррекция и улучшение освещения
+                      </li>
+                      <li style={{ paddingLeft: '25px', position: 'relative', marginBottom: '8px' }}>
+                        <span style={{ position: 'absolute', left: 0, color: '#667eea' }}>✨</span>
+                        Увеличение четкости и детализации
+                      </li>
+                      <li style={{ paddingLeft: '25px', position: 'relative', marginBottom: '8px' }}>
+                        <span style={{ position: 'absolute', left: 0, color: '#667eea' }}>✨</span>
+                        Создание привлекательной, продающей атмосферы
+                      </li>
+                    </ul>
+
+                    <div style={{
+                      background: '#f0f9ff',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      marginTop: '15px',
+                      textAlign: 'center',
+                      fontSize: '0.9rem',
+                      color: '#667eea',
+                      fontWeight: '500'
+                    }}>
+                      📷 Превращаем обычные фото в профессиональные продающие снимки
+                    </div>
                   </div>
                 </div>
               )}
