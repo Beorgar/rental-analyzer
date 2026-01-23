@@ -20,28 +20,34 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Demo property data for testing
+    // Demo property data for testing - Paul's Studio in Austria
     const propertyData = {
-      title: 'Beautiful Apartment in City Center',
+      title: "Paul's Studio - Cozy Apartment near Vienna",
       location: {
-        city: 'New York',
-        country: 'USA',
+        city: 'Vienna',
+        country: 'Austria',
       },
       capacity: {
-        bedrooms: 2,
-        guests: 4,
+        bedrooms: 1,
+        guests: 2,
       },
       pricing: {
-        basePrice: 150,
+        basePrice: 85,
       },
       rating: {
-        average: 4.8,
-        reviewCount: 127,
+        average: 4.7,
+        reviewCount: 89,
       },
-      amenities: ['WiFi', 'Kitchen', 'Air conditioning', 'Heating', 'TV', 'Washer', 'Parking'],
+      amenities: ['WiFi', 'Kitchen', 'Heating', 'TV', 'Free Parking', 'Near Public Transport'],
     };
 
-    const prompt = `Analyze this short-term rental property and provide a comprehensive pricing recommendation report for the next 3 months.
+    // Get current date for analysis
+    const currentDate = new Date();
+    const dateStr = currentDate.toISOString().split('T')[0];
+
+    const prompt = `You are an expert in short-term rental pricing and revenue optimization. Analyze this property and provide a comprehensive pricing recommendation report for the next 3 months.
+
+TODAY'S DATE: ${dateStr}
 
 Property Details:
 - Title: ${propertyData.title}
@@ -52,35 +58,58 @@ Property Details:
 - Rating: ${propertyData.rating.average} (${propertyData.rating.reviewCount} reviews)
 - Amenities: ${propertyData.amenities.join(', ')}
 
+IMPORTANT REQUIREMENTS:
+- Research and include ALL local/national holidays and public holidays for ${propertyData.location.country} in the next 3 months
+- Include school vacation periods (winter break, spring break, summer holidays)
+- Identify major local events, festivals, conferences, and sports events in ${propertyData.location.city}
+- Consider seasonal tourism patterns specific to this region
+- Account for weekend vs weekday demand patterns
+
 Please provide:
 
 1. **Market Analysis**
-   - Location demand assessment
+   - Location demand assessment with specific regional insights
    - Seasonal trends for the next 3 months
+   - **LOCAL EVENTS CALENDAR:** List ALL upcoming holidays, school vacations, festivals, and major events with specific dates
    - Competition analysis
-   - Target audience identification
+   - Target audience identification (business travelers, tourists, families, etc.)
 
-2. **Pricing Strategy**
-   - Recommended base price per night
+2. **Pricing Strategy with Events-Based Recommendations**
+   - Recommended base price per night for regular days
    - Weekend vs weekday pricing
-   - Monthly pricing calendar with specific dates and prices
-   - Minimum stay recommendations
+   - **HOLIDAY & EVENT PRICING:** Specific price recommendations for each holiday/event period
+   - **MONTHLY PRICING CALENDAR:** Week-by-week breakdown for next 3 months with:
+     * Specific date ranges
+     * Recommended nightly rate
+     * Reasoning (holiday, event, regular period, etc.)
+   - Minimum stay recommendations (adjust for high-demand periods)
 
 3. **Revenue Optimization**
-   - Expected occupancy rate
-   - Projected monthly revenue
-   - Dynamic pricing suggestions
+   - Expected occupancy rate (monthly breakdown)
+   - Projected monthly revenue with event-adjusted pricing
+   - Dynamic pricing suggestions:
+     * When to raise prices (before/during holidays and events)
+     * When to offer discounts (low-demand periods)
+     * Last-minute pricing strategy
 
 4. **Property Improvements**
-   - Description optimization suggestions
+   - Description optimization suggestions (highlight proximity to attractions)
    - Photography improvement recommendations
    - Amenity additions that would increase value
+   - Marketing suggestions for upcoming high-demand periods
 
 5. **Competitive Positioning**
    - Key differentiators
    - Areas for improvement
+   - How to capitalize on upcoming local events
 
-Please format the report in clear sections with specific, actionable recommendations.`;
+FORMAT REQUIREMENTS:
+- Use clear sections with headers
+- Include specific dates and price points
+- Highlight high-demand periods with 📅 emoji
+- Use tables or lists for pricing calendars
+- Provide actionable, specific recommendations
+- Include currency symbol appropriate to location (EUR for Austria)`;
 
     const message = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
