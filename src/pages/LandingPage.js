@@ -152,7 +152,10 @@ function LandingPage() {
                 <div className="property-detail-item">
                   <label>Текущая цена</label>
                   <span>
-                    ${propertyData.pricing.basePrice}/{propertyData.pricing.currency}
+                    От {propertyData.pricing.currency === 'EUR' ? '€' : propertyData.pricing.currency === 'USD' ? '$' : propertyData.pricing.currency}{propertyData.pricing.basePrice}/ночь
+                    <span style={{ fontSize: '0.85em', color: '#777', display: 'block', marginTop: '4px' }}>
+                      *Цены варьируются в зависимости от дат
+                    </span>
                   </span>
                 </div>
               </div>
