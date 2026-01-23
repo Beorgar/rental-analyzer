@@ -124,12 +124,48 @@ async function scrapeBookingProperty(url, apifyClient) {
     const basePrice = property.price ? parseFloat(property.price) : 100;
     const currency = property.currency || 'EUR';
 
-    // Capacity - estimate from property type and description
-    // voyager doesn't provide explicit capacity info, use defaults
-    const guests = 2; // Default for studio/apartment
-    const bedrooms = 1; // Estimate
-    const beds = 1;
-    const bathrooms = 1;
+    // Capacity - extract from description and host info
+    let guests = 2; // Default
+    let bedrooms = 1;
+    let beds = 1;
+    let bathrooms = 1;
+
+    // Try to extract capacity from host welcome message
+    const welcomeMsg = property.hostInfo?.welcomeMessage || '';
+    const description = property.description || '';
+
+    // Look for patterns like "2 + 2", "up to 4 guests", "4 guests", etc.
+    const guestPatterns = [
+      /(\d+)\s*\+\s*(\d+)/i, // "2 + 2"
+      /up to (\d+)\s*guests/i, // "up to 4 guests"
+      /(\d+)\s*guests/i, // "4 guests"
+      /accommodates?\s*(\d+)/i, // "accommodates 4"
+      /sleeps?\s*(\d+)/i, // "sleeps 4"
+    ];
+
+    const textToSearch = `${welcomeMsg} ${description}`;
+
+    for (const pattern of guestPatterns) {
+      const match = textToSearch.match(pattern);
+      if (match) {
+        if (match[2]) {
+          // Pattern like "2 + 2"
+          guests = parseInt(match[1]) + parseInt(match[2]);
+        } else {
+          guests = parseInt(match[1]);
+        }
+        break;
+      }
+    }
+
+    // Extract bedroom count from description
+    const bedroomMatch = description.match(/(\d+)[\s-]bedroom/i);
+    if (bedroomMatch) {
+      bedrooms = parseInt(bedroomMatch[1]);
+    }
+
+    // Estimate beds (usually 1-2 per bedroom for apartments)
+    beds = bedrooms >= 1 ? bedrooms : 1;
 
     return {
       id: property.hotelId || Math.random().toString(36).substr(2, 9),
