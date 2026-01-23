@@ -20,11 +20,11 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Demo property data for testing - Paul's Studio in Austria
+    // Demo property data for testing - Paul's Studio in Kaprun (ski resort)
     const propertyData = {
-      title: "Paul's Studio - Cozy Apartment near Vienna",
+      title: "Paul's Studio - Ski Apartment in Kaprun",
       location: {
-        city: 'Vienna',
+        city: 'Kaprun',
         country: 'Austria',
       },
       capacity: {
@@ -32,13 +32,13 @@ module.exports = async (req, res) => {
         guests: 2,
       },
       pricing: {
-        basePrice: 85,
+        basePrice: 95,
       },
       rating: {
         average: 4.7,
         reviewCount: 89,
       },
-      amenities: ['WiFi', 'Kitchen', 'Heating', 'TV', 'Free Parking', 'Near Public Transport'],
+      amenities: ['WiFi', 'Kitchen', 'Heating', 'TV', 'Free Parking', 'Ski Storage', 'Near Ski Lifts'],
     };
 
     // Get current date for analysis
