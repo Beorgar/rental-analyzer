@@ -4,8 +4,11 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import axios from 'axios';
 
-// Replace with your Stripe publishable key
-const stripePromise = loadStripe('pk_test_your_publishable_key_here');
+// Stripe publishable key from environment variable
+const stripePromise = loadStripe(
+  process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY ||
+  'pk_test_51SHXW9Rrj9EnQ17aJQzjpy5UiCisIZq3gDFpMb8pbqeTS0FjWNGIOQGMcVRdwn3PNVUslQtPrZfY36Vw0EBZlUGO00mNKFfAHe'
+);
 
 function CheckoutForm({ propertyData }) {
   const stripe = useStripe();
