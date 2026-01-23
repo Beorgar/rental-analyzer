@@ -48,8 +48,12 @@ module.exports = async (req, res) => {
     let propertyData;
 
     if (platform === 'booking') {
-      // Use Booking.com scraper
-      propertyData = await scrapeBookingProperty(url, apifyClient);
+      // TEMPORARY: Apify scraper is too slow (10+ min, $0.28)
+      // Using demo data until we find a better solution
+      propertyData = getDemoData(url, platform);
+
+      // TODO: Implement faster scraping solution
+      // propertyData = await scrapeBookingProperty(url, apifyClient);
     } else {
       // Fallback to demo data for other platforms
       propertyData = getDemoData(url, platform);
