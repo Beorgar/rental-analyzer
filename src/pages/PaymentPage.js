@@ -89,17 +89,21 @@ function CheckoutForm({ propertyData }) {
       }
 
       if (paymentIntent.status === 'succeeded') {
-        // Generate and send report
-        await axios.post('/api/report/generate', {
+        // Generate and send report (async, don't wait)
+        axios.post('/api/report/generate', {
           propertyData,
           email,
           paymentIntentId: paymentIntent.id,
+        }).catch(err => {
+          console.error('Report generation error (non-blocking):', err);
         });
 
+        // Navigate to success page immediately
         navigate('/success', {
           state: {
             email,
-            selectedUpsells
+            selectedUpsells,
+            paymentId: paymentIntent.id
           }
         });
       }
