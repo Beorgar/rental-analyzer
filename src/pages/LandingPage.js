@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -7,6 +7,7 @@ function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [propertyData, setPropertyData] = useState(null);
+  const [countdown, setCountdown] = useState(20);
   const navigate = useNavigate();
 
   const handleAnalyze = async () => {
@@ -35,6 +36,26 @@ function LandingPage() {
   const handleGetReport = () => {
     navigate('/payment', { state: { propertyData } });
   };
+
+  useEffect(() => {
+    let timer;
+    if (loading) {
+      setCountdown(20);
+      timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [loading]);
 
   return (
     <div>
@@ -111,6 +132,9 @@ function LandingPage() {
           {loading && (
             <div className="loading">
               <div className="spinner"></div>
+              <p style={{ marginTop: '20px', fontSize: '1.1rem', color: '#555' }}>
+                Анализируем объект... Примерное время ожидания: <strong>{countdown}с</strong>
+              </p>
             </div>
           )}
 
@@ -178,7 +202,7 @@ function LandingPage() {
                     Фотографии
                   </label>
                   <div className="property-images">
-                    {propertyData.images.map((img, idx) => (
+                    {propertyData.images.slice(0, 6).map((img, idx) => (
                       <img key={idx} src={img} alt={`Property ${idx + 1}`} />
                     ))}
                   </div>
