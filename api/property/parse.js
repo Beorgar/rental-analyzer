@@ -48,12 +48,8 @@ module.exports = async (req, res) => {
     let propertyData;
 
     if (platform === 'booking') {
-      // TEMPORARY: Apify scraper is too slow (10+ min, $0.28)
-      // Using demo data until we find a better solution
-      propertyData = getDemoData(url, platform);
-
-      // TODO: Implement faster scraping solution
-      // propertyData = await scrapeBookingProperty(url, apifyClient);
+      // Use voyager/booking-scraper - fast and reliable (16s, $0.005)
+      propertyData = await scrapeBookingProperty(url, apifyClient);
     } else {
       // Fallback to demo data for other platforms
       propertyData = getDemoData(url, platform);
@@ -75,16 +71,12 @@ module.exports = async (req, res) => {
 
 async function scrapeBookingProperty(url, apifyClient) {
   try {
-    // Run Booking.com scraper actor
-    const run = await apifyClient.actor('dtrungtin/booking-scraper').call({
-      search: url,
+    // Use voyager/booking-scraper - fast and reliable (16s, $0.005)
+    const run = await apifyClient.actor('voyager/booking-scraper').call({
+      startUrls: [{ url }],
       maxItems: 1,
-      checkIn: new Date().toISOString().split('T')[0],
-      checkOut: new Date(Date.now() + 86400000).toISOString().split('T')[0], // +1 day
       currency: 'EUR',
       language: 'en-gb',
-      propertyType: 'none',
-      minScore: '0',
     });
 
     // Fetch results from dataset
@@ -96,50 +88,78 @@ async function scrapeBookingProperty(url, apifyClient) {
 
     const property = items[0];
 
-    // Transform Apify data to our format
-    // Note: Booking.com uses 0-10 rating scale
-    const rating = parseFloat(property.reviewScore || property.rating || 0);
+    // Transform voyager data to our format
+    // Rating: Booking.com uses 0-10 rating scale
+    const rating = parseFloat(property.rating || 0);
 
-    // Handle images - can be array of strings or objects
-    let imageUrls = [];
-    if (property.images) {
-      imageUrls = property.images.map(img => {
-        if (typeof img === 'string') return img;
-        if (img.url) return img.url;
-        if (img.photo) return img.photo;
-        return null;
-      }).filter(Boolean);
+    // Images: voyager returns array of strings
+    const imageUrls = property.images || [];
+
+    // Extract amenities from facilities structure
+    const amenities = [];
+    if (property.facilities && Array.isArray(property.facilities)) {
+      property.facilities.forEach(category => {
+        if (category.facilities && Array.isArray(category.facilities)) {
+          category.facilities.forEach(facility => {
+            if (facility.name) {
+              amenities.push(facility.name);
+            }
+          });
+        }
+      });
     }
 
+    // Address from voyager format
+    const addressObj = property.address || {};
+    const fullAddress = addressObj.full || '';
+    const city = addressObj.city || '';
+    const country = addressObj.country || '';
+
+    // Location coordinates
+    const locationObj = property.location || {};
+    const latitude = parseFloat(locationObj.lat || 0);
+    const longitude = parseFloat(locationObj.lng || 0);
+
+    // Price (may be null if no check-in/out dates provided)
+    const basePrice = property.price ? parseFloat(property.price) : 100;
+    const currency = property.currency || 'EUR';
+
+    // Capacity - estimate from property type and description
+    // voyager doesn't provide explicit capacity info, use defaults
+    const guests = 2; // Default for studio/apartment
+    const bedrooms = 1; // Estimate
+    const beds = 1;
+    const bathrooms = 1;
+
     return {
-      id: property.id || property.hotel_id,
+      id: property.hotelId || Math.random().toString(36).substr(2, 9),
       url: property.url || url,
       platform: 'booking',
-      title: property.name || property.hotel_name,
+      title: property.name || '',
       location: {
-        address: property.address || '',
-        city: property.city || '',
-        country: property.country || '',
-        latitude: property.location?.lat || 0,
-        longitude: property.location?.lng || 0,
+        address: fullAddress,
+        city: city,
+        country: country,
+        latitude: latitude,
+        longitude: longitude,
       },
       description: property.description || '',
-      amenities: property.facilities || property.amenities || [],
+      amenities: amenities,
       images: imageUrls,
       pricing: {
-        basePrice: parseFloat(property.price || property.minPrice || 100),
-        currency: property.currency || 'EUR',
+        basePrice: basePrice,
+        currency: currency,
         cleaningFee: 0,
       },
       capacity: {
-        guests: parseInt(property.maxPersons || property.max_persons || 2),
-        bedrooms: parseInt(property.rooms || property.bedrooms || 1),
-        beds: parseInt(property.beds || 1),
-        bathrooms: 1,
+        guests: guests,
+        bedrooms: bedrooms,
+        beds: beds,
+        bathrooms: bathrooms,
       },
       rating: {
         average: rating, // Booking uses 0-10 scale
-        reviewCount: parseInt(property.reviewCount || property.reviews || property.numberOfReviews || 0),
+        reviewCount: parseInt(property.reviews || 0),
       },
     };
   } catch (error) {
