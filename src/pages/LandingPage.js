@@ -7,7 +7,7 @@ function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [propertyData, setPropertyData] = useState(null);
-  const [countdown, setCountdown] = useState(20);
+  const [countdown, setCountdown] = useState(60);
   const navigate = useNavigate();
 
   const handleAnalyze = async () => {
@@ -40,7 +40,7 @@ function LandingPage() {
   useEffect(() => {
     let timer;
     if (loading) {
-      setCountdown(20);
+      setCountdown(60);
       timer = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
