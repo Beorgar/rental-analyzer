@@ -230,9 +230,104 @@ function LandingPage() {
             </div>
           )}
 
+          {/* AI Improvements Examples */}
+          {!propertyData && !loading && (
+            <div style={{ marginTop: '60px', textAlign: 'center' }}>
+              <h3 style={{ fontSize: '1.5rem', marginBottom: '30px', color: '#2c3e50' }}>
+                ✨ Что может AI для вашего объекта
+              </h3>
+
+              {/* Description Improvement Example */}
+              <div style={{
+                background: '#fff',
+                padding: '30px',
+                borderRadius: '15px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                marginBottom: '30px',
+                textAlign: 'left'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                  <div style={{ fontSize: '2.5rem', marginRight: '15px' }}>✍️</div>
+                  <h4 style={{ fontSize: '1.3rem', color: '#2c3e50', margin: 0 }}>
+                    Улучшение описания объекта
+                  </h4>
+                </div>
+
+                <div style={{
+                  background: '#f8f9fa',
+                  padding: '15px',
+                  borderRadius: '10px',
+                  borderLeft: '4px solid #e0e0e0',
+                  marginBottom: '15px'
+                }}>
+                  <strong style={{ color: '#999', fontSize: '0.9rem' }}>❌ Обычное описание:</strong>
+                  <p style={{ color: '#666', margin: '10px 0 0 0', fontSize: '1rem', lineHeight: '1.6' }}>
+                    "Уютная квартира в центре города. Есть кухня и балкон."
+                  </p>
+                </div>
+
+                <div style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  padding: '15px',
+                  borderRadius: '10px',
+                  color: '#fff'
+                }}>
+                  <strong style={{ fontSize: '0.9rem' }}>✨ AI-улучшенное описание:</strong>
+                  <p style={{ margin: '10px 0 0 0', fontSize: '1rem', lineHeight: '1.6' }}>
+                    "Просторная квартира в самом сердце города с панорамными видами.
+                    Полностью оборудованная кухня с современной техникой и уютный балкон
+                    для утреннего кофе создают идеальные условия для комфортного отдыха."
+                  </p>
+                </div>
+              </div>
+
+              {/* Photo Improvement Example */}
+              <div style={{
+                background: '#fff',
+                padding: '30px',
+                borderRadius: '15px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                marginBottom: '40px',
+                textAlign: 'left'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                  <div style={{ fontSize: '2.5rem', marginRight: '15px' }}>📸</div>
+                  <h4 style={{ fontSize: '1.3rem', color: '#2c3e50', margin: 0 }}>
+                    Улучшение фотографий
+                  </h4>
+                </div>
+
+                <p style={{ color: '#555', marginBottom: '20px', fontSize: '1rem' }}>
+                  Превращаем обычные фото в профессиональные продающие снимки:
+                </p>
+
+                <div className="features" style={{ marginTop: '20px' }}>
+                  <div className="feature-card" style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '10px' }}>🎨</div>
+                    <p style={{ margin: 0 }}>
+                      Профессиональная цветокоррекция и улучшение освещения
+                    </p>
+                  </div>
+                  <div className="feature-card" style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '10px' }}>🔍</div>
+                    <p style={{ margin: 0 }}>
+                      Увеличение четкости и детализации изображения
+                    </p>
+                  </div>
+                  <div className="feature-card" style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '10px' }}>✨</div>
+                    <p style={{ margin: 0 }}>
+                      Создание привлекательной, продающей атмосферы
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* How it works */}
           {!propertyData && !loading && (
-            <div style={{ marginTop: '60px', textAlign: 'center', color: '#555' }}>
+            <div style={{ marginTop: '40px', textAlign: 'center', color: '#555' }}>
               <h3 style={{ fontSize: '1.5rem', marginBottom: '20px', color: '#2c3e50' }}>
                 Как это работает?
               </h3>
