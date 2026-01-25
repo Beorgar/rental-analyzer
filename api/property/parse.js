@@ -71,6 +71,8 @@ module.exports = async (req, res) => {
 
 async function scrapeBookingProperty(url, apifyClient) {
   try {
+    console.log('🔍 Starting Apify scraping for:', url);
+
     // Use voyager/booking-scraper - fast and reliable (16s, $0.005)
     // Add check-in/out dates to get pricing information
     const checkIn = new Date();
@@ -91,8 +93,11 @@ async function scrapeBookingProperty(url, apifyClient) {
     const { items } = await apifyClient.dataset(run.defaultDatasetId).listItems();
 
     if (!items || items.length === 0) {
+      console.log('❌ No items returned from Apify');
       throw new Error('No property data found');
     }
+
+    console.log('✓ Apify returned data for:', items[0].name || 'Unknown property');
 
     const rawProperty = items[0];
 
@@ -130,6 +135,12 @@ async function scrapeBookingProperty(url, apifyClient) {
 
     // Images: voyager returns array of strings
     const imageUrls = property.images || [];
+    console.log(`📸 Images from Apify: ${imageUrls.length} photos`);
+    if (imageUrls.length > 0) {
+      console.log(`   First image: ${imageUrls[0]?.substring(0, 60)}...`);
+    } else {
+      console.log('⚠️  WARNING: No images returned from Apify!');
+    }
 
     // Extract amenities from facilities structure
     const amenities = [];
@@ -267,7 +278,8 @@ async function scrapeBookingProperty(url, apifyClient) {
       },
     };
   } catch (error) {
-    console.error('Apify scraping error:', error);
+    console.error('❌ Apify scraping error:', error.message);
+    console.log('⚠️  Using DEMO DATA as fallback (photos will be incorrect!)');
     // Return demo data as fallback
     return getDemoData(url, 'booking');
   }
@@ -275,11 +287,13 @@ async function scrapeBookingProperty(url, apifyClient) {
 
 function getDemoData(url, platform) {
   // Demo data using Booking.com format (10-point rating scale)
+  console.log('⚠️  Returning DEMO DATA - real scraping failed!');
+
   return {
     id: Math.random().toString(36).substr(2, 9),
     url,
     platform,
-    title: "Paul's Studio - Ski Apartment in Kaprun",
+    title: "⚠️ DEMO DATA - Paul's Studio (Scraping Failed)",
     location: {
       address: 'Nikolaus-Gassner-Promenade 30, 5710 Kaprun, Austria',
       city: 'Kaprun',
