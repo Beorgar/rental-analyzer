@@ -10,7 +10,7 @@ async function sendReportEmail({ to, propertyName, pdfBuffer, location }) {
     const fileName = `AI-Pricing-Report-${Date.now()}.pdf`;
 
     const { data, error } = await resend.emails.send({
-      from: 'AI Pricing Report <noreply@yourdomain.com>',
+      from: 'AI Pricing Report <onboarding@resend.dev>',
       to: [to],
       subject: `🎯 Ваш AI-отчёт готов: ${propertyName}`,
       html: `
