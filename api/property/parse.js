@@ -94,7 +94,35 @@ async function scrapeBookingProperty(url, apifyClient) {
       throw new Error('No property data found');
     }
 
-    const property = items[0];
+    const rawProperty = items[0];
+
+    // OPTIMIZATION: Filter only needed fields to reduce data size (200KB → 2KB)
+    const rawSize = JSON.stringify(rawProperty).length;
+
+    const property = {
+      hotelId: rawProperty.hotelId,
+      name: rawProperty.name,
+      url: rawProperty.url,
+      rating: rawProperty.rating,
+      reviews: rawProperty.reviews,
+      price: rawProperty.price,
+      currency: rawProperty.currency,
+      images: rawProperty.images?.slice(0, 10) || [], // Limit to 10 images
+      address: rawProperty.address,
+      location: rawProperty.location,
+      description: rawProperty.description?.substring(0, 1000) || '', // Limit description
+      facilities: rawProperty.facilities,
+      hostInfo: {
+        welcomeMessage: rawProperty.hostInfo?.welcomeMessage?.substring(0, 500) || ''
+      },
+      rooms: rawProperty.rooms?.slice(0, 5).map(room => ({
+        price: room.price,
+        name: room.name
+      })) || [] // Limit rooms and keep only price/name
+    };
+
+    const optimizedSize = JSON.stringify(property).length;
+    console.log(`✓ Data optimized: ${rawSize} → ${optimizedSize} bytes (${Math.round((1 - optimizedSize/rawSize) * 100)}% reduction)`);
 
     // Transform voyager data to our format
     // Rating: Booking.com uses 0-10 rating scale

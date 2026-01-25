@@ -1,9 +1,11 @@
-const Anthropic = require('@anthropic-ai/sdk');
-const nodemailer = require('nodemailer');
+const OpenAI = require('openai');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { generateReportHTML } = require('../lib/generateHTML');
+const { generatePDF } = require('../lib/generatePDF');
+const { sendReportEmail } = require('../lib/sendEmail');
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 module.exports = async (req, res) => {
@@ -28,6 +30,8 @@ module.exports = async (req, res) => {
   try {
     const { propertyData, email, paymentIntentId } = req.body;
 
+    console.log('Starting report generation for:', propertyData.title);
+
     // Verify payment
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
@@ -35,16 +39,46 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Payment not completed' });
     }
 
-    // Generate AI report
-    const report = await generateAIReport(propertyData);
+    console.log('✓ Payment verified');
 
-    // Send email with report
-    await sendReportEmail(email, report, propertyData);
+    // Generate AI pricing analysis
+    const analysis = await generatePricingAnalysis(propertyData);
+
+    console.log('✓ AI analysis completed');
+
+    // Generate HTML report
+    const reportHTML = generateReportHTML({
+      propertyData,
+      analysis
+    });
+
+    console.log('✓ HTML report generated');
+
+    // Generate PDF from HTML
+    const pdfBuffer = await generatePDF(reportHTML);
+
+    console.log('✓ PDF generated:', pdfBuffer.length, 'bytes');
+
+    // Send email with PDF attachment
+    await sendReportEmail({
+      to: email,
+      propertyName: propertyData.title,
+      location: `${propertyData.location.city}, ${propertyData.location.country}`,
+      pdfBuffer
+    });
+
+    console.log('✓ Email sent to:', email);
 
     res.status(200).json({
       success: true,
       message: 'Report has been sent to your email',
+      data: {
+        propertyName: propertyData.title,
+        averagePrice: analysis.averagePrice,
+        emailSent: true
+      }
     });
+
   } catch (error) {
     console.error('Error generating report:', error);
     res.status(500).json({
@@ -54,158 +88,198 @@ module.exports = async (req, res) => {
   }
 };
 
-async function generateAIReport(propertyData) {
-  // Get current date for analysis
+/**
+ * Generate pricing analysis using OpenAI GPT-4o-mini
+ * Much cheaper than Claude: $0.15/1M tokens vs $3/1M tokens
+ */
+async function generatePricingAnalysis(propertyData) {
   const currentDate = new Date();
-  const dateStr = currentDate.toISOString().split('T')[0];
+  const currentMonth = currentDate.toLocaleString('en-US', { month: 'long' });
 
-  const prompt = `You are an expert in short-term rental pricing and revenue optimization. Analyze this property and provide a comprehensive pricing recommendation report for the next 3 months.
+  // Generate next 6 months
+  const months = [];
+  for (let i = 0; i < 6; i++) {
+    const date = new Date(currentDate);
+    date.setMonth(date.getMonth() + i);
+    months.push(date.toLocaleString('en-US', { month: 'long' }));
+  }
 
-TODAY'S DATE: ${dateStr}
+  const prompt = `You are an expert pricing analyst for short-term rental properties on Booking.com.
 
-Property Details:
-- Title: ${propertyData.title}
+PROPERTY DATA:
+- Name: ${propertyData.title}
 - Location: ${propertyData.location.city}, ${propertyData.location.country}
-- Bedrooms: ${propertyData.capacity.bedrooms}
-- Guests capacity: ${propertyData.capacity.guests}
-- Current base price: $${propertyData.pricing.basePrice}/night
-- Rating: ${propertyData.rating.average} (${propertyData.rating.reviewCount} reviews)
-- Amenities: ${propertyData.amenities.join(', ')}
+- Current Price: ${propertyData.pricing.currency === 'EUR' ? '€' : '$'}${propertyData.pricing.basePrice}/night
+- Rating: ${propertyData.rating.average}/10 (${propertyData.rating.reviewCount} reviews)
+- Capacity: ${propertyData.capacity.guests} guests, ${propertyData.capacity.bedrooms} bedrooms
+- Platform: Booking.com
 
-IMPORTANT REQUIREMENTS:
-- Research and include ALL local/national holidays and public holidays for ${propertyData.location.country} in the next 3 months
-- Include school vacation periods (winter break, spring break, summer holidays)
-- Identify major local events, festivals, conferences, and sports events in ${propertyData.location.city}
-- Consider seasonal tourism patterns specific to this region
-- Account for weekend vs weekday demand patterns
+TASK:
+Calculate optimal pricing strategy for the NEXT 6 MONTHS: ${months.join(', ')}.
 
-Please provide:
+ANALYSIS FRAMEWORK:
 
-1. **Market Analysis**
-   - Location demand assessment with specific regional insights
-   - Seasonal trends for the next 3 months
-   - **LOCAL EVENTS CALENDAR:** List ALL upcoming holidays, school vacations, festivals, and major events with specific dates
-   - Competition analysis
-   - Target audience identification (business travelers, tourists, families, etc.)
+1. SEASONALITY for ${propertyData.location.city}, ${propertyData.location.country}:
+   - High season months (adjust +25-35% above base)
+   - Medium season months (adjust +10-15% above base)
+   - Low season months (adjust -10-15% below base)
+   - Consider local tourism patterns, ski season, summer holidays, etc.
 
-2. **Pricing Strategy with Events-Based Recommendations**
-   - Recommended base price per night for regular days
-   - Weekend vs weekday pricing
-   - **HOLIDAY & EVENT PRICING:** Specific price recommendations for each holiday/event period
-   - **MONTHLY PRICING CALENDAR:** Week-by-week breakdown for next 3 months with:
-     * Specific date ranges
-     * Recommended nightly rate
-     * Reasoning (holiday, event, regular period, etc.)
-   - Minimum stay recommendations (adjust for high-demand periods)
+2. RATING ADJUSTMENT:
+   - Rating ≥ 9.0: Premium property → +15%
+   - Rating 8.0-8.9: Good property → +5%
+   - Rating < 8.0: Average property → 0%
 
-3. **Revenue Optimization**
-   - Expected occupancy rate (monthly breakdown)
-   - Projected monthly revenue with event-adjusted pricing
-   - Dynamic pricing suggestions:
-     * When to raise prices (before/during holidays and events)
-     * When to offer discounts (low-demand periods)
-     * Last-minute pricing strategy
+3. OCCUPANCY ESTIMATES:
+   - High season: 85-90%
+   - Medium season: 70-80%
+   - Low season: 60-70%
 
-4. **Property Improvements**
-   - Description optimization suggestions (highlight proximity to attractions)
-   - Photography improvement recommendations
-   - Amenity additions that would increase value
-   - Marketing suggestions for upcoming high-demand periods
+CALCULATION RULES:
+- Base calculations on current price: ${propertyData.pricing.basePrice}
+- Apply seasonality multiplier first, then rating adjustment
+- Round final prices to nearest 5
+- Be realistic - avoid suggesting more than 50% price changes
+- Consider ${propertyData.location.city} specific tourism trends
 
-5. **Competitive Positioning**
-   - Key differentiators
-   - Areas for improvement
-   - How to capitalize on upcoming local events
+OUTPUT REQUIREMENTS:
+Return ONLY valid JSON (no markdown, no explanations). Schema:
 
-FORMAT REQUIREMENTS:
-- Use clear sections with headers
-- Include specific dates and price points
-- Highlight high-demand periods with 📅 emoji
-- Use tables or lists for pricing calendars
-- Provide actionable, specific recommendations
-- Include currency symbol appropriate to location`;
+{
+  "monthlyPricing": [
+    {
+      "month": "January",
+      "recommendedPrice": 95,
+      "occupancy": "70%",
+      "notes": "Winter/ski season - medium demand"
+    }
+  ],
+  "averagePrice": 100,
+  "recommendations": [
+    "Specific actionable recommendation 1",
+    "Specific actionable recommendation 2",
+    "Specific actionable recommendation 3"
+  ]
+}
+
+IMPORTANT:
+- Return exactly 6 months of pricing (starting with ${currentMonth})
+- All prices must be realistic (between 50% and 150% of base price)
+- Recommendations must be specific and actionable
+- Use ${propertyData.pricing.currency} currency`;
 
   try {
-    const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 4096,
+    console.log('Calling OpenAI GPT-4o-mini...');
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       messages: [
         {
-          role: 'user',
-          content: prompt,
+          role: 'system',
+          content: 'You are a pricing analyst. Return ONLY valid JSON, no markdown, no explanations.'
         },
+        {
+          role: 'user',
+          content: prompt
+        }
       ],
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+      max_tokens: 2000
     });
 
-    return message.content[0].text;
+    const content = response.choices[0].message.content;
+
+    if (!content) {
+      throw new Error('Empty response from OpenAI');
+    }
+
+    const analysis = JSON.parse(content);
+
+    // Validation
+    if (!analysis.monthlyPricing || !Array.isArray(analysis.monthlyPricing)) {
+      throw new Error('Invalid analysis format: missing monthlyPricing array');
+    }
+
+    if (analysis.monthlyPricing.length !== 6) {
+      throw new Error(`Invalid analysis format: expected 6 months, got ${analysis.monthlyPricing.length}`);
+    }
+
+    if (!analysis.averagePrice || analysis.averagePrice < 10 || analysis.averagePrice > 5000) {
+      throw new Error(`Unrealistic average price: ${analysis.averagePrice}`);
+    }
+
+    if (!analysis.recommendations || !Array.isArray(analysis.recommendations)) {
+      analysis.recommendations = [
+        'Примените помесячные рекомендации по ценам',
+        'Добавьте профессиональные фотографии',
+        'Улучшите описание объекта'
+      ];
+    }
+
+    console.log('✓ OpenAI analysis successful. Tokens:', response.usage?.total_tokens || 'N/A');
+    console.log(`  Input: ${response.usage?.prompt_tokens || 'N/A'}, Output: ${response.usage?.completion_tokens || 'N/A'}`);
+
+    return analysis;
+
   } catch (error) {
-    console.error('Error generating AI report:', error);
-    throw new Error('Failed to generate AI analysis');
+    console.error('OpenAI analysis failed:', error);
+
+    // Fallback to basic calculation
+    console.log('Using fallback pricing calculation...');
+    return generateBasicPricing(propertyData, months);
   }
 }
 
-async function sendReportEmail(email, report, propertyData) {
-  const emailTransporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD,
-    },
+/**
+ * Fallback pricing calculation if AI fails
+ */
+function generateBasicPricing(propertyData, months) {
+  const basePrice = propertyData.pricing.basePrice;
+  const rating = propertyData.rating.average;
+  const ratingBonus = rating >= 9 ? 1.15 : rating >= 8 ? 1.05 : 1.0;
+
+  // Simple seasonal pattern
+  const seasonalPatterns = {
+    'January': { multiplier: 1.1, occupancy: '70%', notes: 'Winter season' },
+    'February': { multiplier: 1.0, occupancy: '65%', notes: 'Low season' },
+    'March': { multiplier: 0.9, occupancy: '65%', notes: 'Spring starts' },
+    'April': { multiplier: 1.0, occupancy: '75%', notes: 'Spring peak' },
+    'May': { multiplier: 1.15, occupancy: '80%', notes: 'Pre-summer' },
+    'June': { multiplier: 1.3, occupancy: '85%', notes: 'Summer begins' },
+    'July': { multiplier: 1.35, occupancy: '90%', notes: 'High summer season' },
+    'August': { multiplier: 1.3, occupancy: '88%', notes: 'Peak season' },
+    'September': { multiplier: 1.1, occupancy: '75%', notes: 'Fall season' },
+    'October': { multiplier: 0.95, occupancy: '70%', notes: 'Low season' },
+    'November': { multiplier: 0.9, occupancy: '65%', notes: 'Off season' },
+    'December': { multiplier: 1.2, occupancy: '80%', notes: 'Holiday season' }
+  };
+
+  const monthlyPricing = months.map(month => {
+    const pattern = seasonalPatterns[month] || { multiplier: 1.0, occupancy: '70%', notes: 'Standard season' };
+    const price = Math.round((basePrice * pattern.multiplier * ratingBonus) / 5) * 5;
+
+    return {
+      month,
+      recommendedPrice: price,
+      occupancy: pattern.occupancy,
+      notes: pattern.notes
+    };
   });
 
-  const htmlReport = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-    h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
-    h2 { color: #3498db; margin-top: 30px; }
-    .property-info { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }
-    .upsell { background: #fff3cd; padding: 20px; border-left: 4px solid #ffc107; margin: 30px 0; }
-    .upsell h3 { color: #856404; margin-top: 0; }
-    pre { white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 5px; }
-  </style>
-</head>
-<body>
-  <h1>🏠 Your Short-Term Rental Analysis Report</h1>
+  const averagePrice = Math.round(
+    monthlyPricing.reduce((sum, m) => sum + m.recommendedPrice, 0) / monthlyPricing.length
+  );
 
-  <div class="property-info">
-    <h3>Property Details</h3>
-    <p><strong>Title:</strong> ${propertyData.title}</p>
-    <p><strong>Location:</strong> ${propertyData.location.city}, ${propertyData.location.country}</p>
-    <p><strong>Platform:</strong> ${propertyData.platform}</p>
-  </div>
-
-  <div style="margin: 30px 0;">
-    <pre>${report}</pre>
-  </div>
-
-  <div class="upsell">
-    <h3>🚀 Want to Maximize Your Revenue?</h3>
-    <p>We offer professional services to help you get more bookings:</p>
-    <ul>
-      <li><strong>Description Optimization</strong> - Our expert copywriters will create compelling, SEO-optimized descriptions that convert visitors into bookings.</li>
-      <li><strong>Professional Photography</strong> - High-quality photos can increase bookings by up to 40%. Let us enhance your property photos or arrange a professional shoot.</li>
-    </ul>
-    <p>Reply to this email to learn more about these services!</p>
-  </div>
-
-  <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-  <p style="color: #777; font-size: 12px;">
-    This report was generated using advanced AI analysis. For questions or support, reply to this email.
-  </p>
-</body>
-</html>
-  `;
-
-  await emailTransporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: `Your Rental Analysis Report - ${propertyData.title}`,
-    html: htmlReport,
-  });
+  return {
+    monthlyPricing,
+    averagePrice,
+    recommendations: [
+      '⚠️ AI анализ временно недоступен - используется базовый расчёт',
+      'Примените помесячные рекомендации по ценам',
+      'Следите за локальными событиями и корректируйте цены',
+      'Добавьте профессиональные фотографии для увеличения бронирований',
+      'Улучшите описание объекта с акцентом на уникальные преимущества'
+    ]
+  };
 }
