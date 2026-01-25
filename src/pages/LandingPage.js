@@ -26,8 +26,14 @@ function LandingPage() {
         setPropertyData(response.data.data);
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Произошла ошибка при анализе ссылки');
+      const errorMessage = err.response?.data?.error || err.message || 'Произошла ошибка при анализе ссылки';
+      setError(errorMessage);
       console.error('Error analyzing property:', err);
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
     } finally {
       setLoading(false);
     }

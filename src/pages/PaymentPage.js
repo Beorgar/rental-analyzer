@@ -18,6 +18,7 @@ function CheckoutForm({ propertyData }) {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [clientSecret, setClientSecret] = useState('');
+  const [progressStatus, setProgressStatus] = useState('');
 
   // Pricing
   const basePrice = 49.99; // Price in dollars
@@ -89,23 +90,45 @@ function CheckoutForm({ propertyData }) {
       }
 
       if (paymentIntent.status === 'succeeded') {
-        // Generate and send report (async, don't wait)
-        axios.post('/api/report/generate', {
-          propertyData,
-          email,
-          paymentIntentId: paymentIntent.id,
-        }).catch(err => {
-          console.error('Report generation error (non-blocking):', err);
-        });
+        // Generate and send report (wait for completion)
+        try {
+          setProgressStatus('Анализируем объект с помощью AI...');
 
-        // Navigate to success page immediately
-        navigate('/success', {
-          state: {
+          await axios.post('/api/report/generate', {
+            propertyData,
             email,
-            selectedUpsells,
-            paymentId: paymentIntent.id
-          }
-        });
+            paymentIntentId: paymentIntent.id,
+          });
+
+          setProgressStatus('Отчёт отправлен на email!');
+
+          // Navigate to success page after report is sent
+          setTimeout(() => {
+            navigate('/success', {
+              state: {
+                email,
+                selectedUpsells,
+                paymentId: paymentIntent.id
+              }
+            });
+          }, 1000);
+
+        } catch (reportError) {
+          console.error('Report generation error:', reportError);
+          setError('Оплата прошла успешно, но возникла ошибка при генерации отчёта. Мы отправим его вручную на ' + email);
+          setProcessing(false);
+
+          // Still navigate to success after 5 seconds
+          setTimeout(() => {
+            navigate('/success', {
+              state: {
+                email,
+                selectedUpsells,
+                paymentId: paymentIntent.id
+              }
+            });
+          }, 5000);
+        }
       }
     } catch (err) {
       console.error('Payment error:', err);
@@ -251,13 +274,23 @@ function CheckoutForm({ propertyData }) {
 
         {error && <div className="error-message">{error}</div>}
 
+        {/* Progress Status */}
+        {progressStatus && (
+          <div className="progress-status">
+            <div className="progress-spinner"></div>
+            <p>{progressStatus}</p>
+          </div>
+        )}
+
         {/* Submit Button */}
         <button
           type="submit"
           className="submit-payment-btn"
           disabled={!stripe || processing || !email}
         >
-          {processing ? 'Обработка...' : `Оплатить $${totalPrice.toFixed(2)}`}
+          {processing && !progressStatus ? 'Обработка платежа...' :
+           processing ? 'Генерируем отчёт...' :
+           `Оплатить $${totalPrice.toFixed(2)}`}
         </button>
 
         <p className="security-note">

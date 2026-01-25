@@ -26,7 +26,11 @@ module.exports = async (req, res) => {
   try {
     const { url } = req.body;
 
+    console.log('🔗 Parsing property URL:', url);
+    console.log('   ENV check - APIFY_API_TOKEN:', process.env.APIFY_API_TOKEN ? 'SET' : 'NOT SET');
+
     if (!url) {
+      console.error('❌ No URL provided');
       return res.status(400).json({ error: 'URL is required' });
     }
 
@@ -61,10 +65,14 @@ module.exports = async (req, res) => {
       data: propertyData
     });
   } catch (error) {
-    console.error('Error parsing property:', error);
+    console.error('❌ Error parsing property:', error);
+    console.error('   Error stack:', error.stack);
+    console.error('   Error name:', error.name);
+    console.error('   Error message:', error.message);
     res.status(500).json({
       error: 'Failed to parse property data',
-      details: error.message
+      details: error.message,
+      errorName: error.name
     });
   }
 };

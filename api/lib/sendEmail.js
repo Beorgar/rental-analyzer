@@ -9,6 +9,11 @@ async function sendReportEmail({ to, propertyName, pdfBuffer, location }) {
   try {
     const fileName = `AI-Pricing-Report-${Date.now()}.pdf`;
 
+    console.log('📧 Attempting to send email...');
+    console.log('   To:', to);
+    console.log('   Property:', propertyName);
+    console.log('   PDF size:', pdfBuffer.length, 'bytes');
+
     const { data, error } = await resend.emails.send({
       from: 'AI Pricing Report <onboarding@resend.dev>',
       to: [to],
@@ -88,10 +93,13 @@ async function sendReportEmail({ to, propertyName, pdfBuffer, location }) {
     });
 
     if (error) {
-      throw new Error(`Resend API error: ${error.message}`);
+      console.error('❌ Resend API error:', error);
+      throw new Error(`Resend API error: ${JSON.stringify(error)}`);
     }
 
-    console.log('✓ Email sent successfully via Resend:', data);
+    console.log('✓ Email sent successfully via Resend!');
+    console.log('   Email ID:', data?.id);
+    console.log('   To:', to);
     return data;
 
   } catch (error) {
