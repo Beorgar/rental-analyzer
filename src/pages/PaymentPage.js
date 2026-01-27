@@ -43,6 +43,7 @@ function CheckoutForm({ propertyData }) {
           amount: Math.round(totalPrice * 100), // Convert to cents
           email,
           propertyId: propertyData?.id,
+          selectedUpsells, // Send upsells to payment intent
         });
         setClientSecret(response.data.clientSecret);
       } catch (err) {
@@ -54,7 +55,7 @@ function CheckoutForm({ propertyData }) {
     if (email && email.includes('@')) {
       createPaymentIntent();
     }
-  }, [email, totalPrice, propertyData]);
+  }, [email, totalPrice, propertyData, selectedUpsells]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -90,45 +91,26 @@ function CheckoutForm({ propertyData }) {
       }
 
       if (paymentIntent.status === 'succeeded') {
-        // Generate and send report (wait for completion)
-        try {
-          setProgressStatus('Анализируем объект с помощью AI...');
-
-          await axios.post('/api/report/generate', {
-            propertyData,
-            email,
-            paymentIntentId: paymentIntent.id,
-          });
-
-          setProgressStatus('Отчёт отправлен на email!');
-
-          // Navigate to success page after report is sent
-          setTimeout(() => {
-            navigate('/success', {
-              state: {
-                email,
-                selectedUpsells,
-                paymentId: paymentIntent.id
-              }
-            });
-          }, 1000);
-
-        } catch (reportError) {
+        // Start report generation in background (fire-and-forget)
+        // Don't wait for it to complete - immediately redirect to success page
+        axios.post('/api/report/generate', {
+          propertyData,
+          email,
+          paymentIntentId: paymentIntent.id,
+          selectedUpsells, // Send upsells for enhanced report
+        }).catch(reportError => {
+          // Log error but don't show to user - they'll get manual delivery
           console.error('Report generation error:', reportError);
-          setError('Оплата прошла успешно, но возникла ошибка при генерации отчёта. Мы отправим его вручную на ' + email);
-          setProcessing(false);
+        });
 
-          // Still navigate to success after 5 seconds
-          setTimeout(() => {
-            navigate('/success', {
-              state: {
-                email,
-                selectedUpsells,
-                paymentId: paymentIntent.id
-              }
-            });
-          }, 5000);
-        }
+        // Immediately navigate to success page
+        navigate('/success', {
+          state: {
+            email,
+            selectedUpsells,
+            paymentId: paymentIntent.id
+          }
+        });
       }
     } catch (err) {
       console.error('Payment error:', err);

@@ -2,7 +2,7 @@
  * Generate HTML report from pricing analysis data
  */
 function generateReportHTML(data) {
-  const { propertyData, analysis } = data;
+  const { propertyData, analysis, enhancedDescription, photoAnalysis, hasPhotosUpsell, hasDescriptionUpsell } = data;
 
   const currentDate = new Date().toLocaleDateString('ru-RU', {
     day: 'numeric',
@@ -280,6 +280,68 @@ function generateReportHTML(data) {
         </p>
       </div>
     </div>
+
+    ${hasDescriptionUpsell && enhancedDescription ? `
+    <div class="section">
+      <h2>✨ Улучшенное маркетинговое описание</h2>
+      <div style="background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); padding: 30px; border-radius: 15px; border-left: 4px solid #667eea;">
+        <p style="font-size: 1.1rem; line-height: 1.8; color: #1e293b; white-space: pre-wrap;">
+          ${enhancedDescription}
+        </p>
+      </div>
+      <p style="color: #64748b; font-size: 0.9rem; margin-top: 15px; font-style: italic;">
+        💡 Профессионально составленное описание создано AI-копирайтером специально для вашего объекта. Используйте это описание в листингах на Booking.com, Airbnb и других платформах.
+      </p>
+    </div>
+    ` : ''}
+
+    ${hasPhotosUpsell && photoAnalysis ? `
+    <div class="section">
+      <h2>📸 Профессиональный анализ фотографий</h2>
+
+      <div class="property-details" style="margin-bottom: 20px;">
+        <div class="detail-row">
+          <span class="label">Общая оценка качества фотографий</span>
+          <span class="value" style="font-size: 1.5rem; color: ${photoAnalysis.overallScore >= 8 ? '#10b981' : photoAnalysis.overallScore >= 6 ? '#f59e0b' : '#ef4444'};">
+            ${photoAnalysis.overallScore}/10
+          </span>
+        </div>
+      </div>
+
+      ${photoAnalysis.strengths && photoAnalysis.strengths.length > 0 ? `
+      <div style="background: #f0fdf4; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #10b981;">
+        <h3 style="font-size: 1.2rem; margin-bottom: 15px; color: #166534;">✅ Сильные стороны</h3>
+        <ul style="margin-left: 20px; color: #15803d;">
+          ${photoAnalysis.strengths.map(s => `<li style="margin-bottom: 8px;">${s}</li>`).join('')}
+        </ul>
+      </div>
+      ` : ''}
+
+      ${photoAnalysis.missing && photoAnalysis.missing.length > 0 ? `
+      <div style="background: #fef3c7; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
+        <h3 style="font-size: 1.2rem; margin-bottom: 15px; color: #92400e;">⚠️ Отсутствующие типы фотографий</h3>
+        <ul style="margin-left: 20px; color: #78350f;">
+          ${photoAnalysis.missing.map(m => `<li style="margin-bottom: 8px;">${m}</li>`).join('')}
+        </ul>
+      </div>
+      ` : ''}
+
+      ${photoAnalysis.recommendations && photoAnalysis.recommendations.length > 0 ? `
+      <div class="recommendations">
+        <h3>💡 Рекомендации по улучшению фотографий</h3>
+        <ul>
+          ${photoAnalysis.recommendations.map(r => `<li>${r}</li>`).join('')}
+        </ul>
+      </div>
+      ` : ''}
+
+      ${photoAnalysis.sequenceAdvice ? `
+      <div class="highlight-box">
+        <p><strong>Совет по последовательности фотографий:</strong> ${photoAnalysis.sequenceAdvice}</p>
+      </div>
+      ` : ''}
+    </div>
+    ` : ''}
 
     ${analysis.tourismInsights ? `
     <div class="section">

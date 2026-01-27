@@ -31,28 +31,55 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { propertyData, email, paymentIntentId } = req.body;
+    const { propertyData, email, paymentIntentId, selectedUpsells } = req.body;
 
     console.log('Starting report generation for:', propertyData.title);
+    console.log('Selected upsells:', selectedUpsells);
 
-    // Verify payment
+    // Verify payment and get metadata
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     if (paymentIntent.status !== 'succeeded') {
       return res.status(400).json({ error: 'Payment not completed' });
     }
 
+    // Get upsells from payment metadata if not in request body
+    const hasPhotosUpsell = selectedUpsells?.photos || paymentIntent.metadata?.hasPhotosUpsell === 'true';
+    const hasDescriptionUpsell = selectedUpsells?.description || paymentIntent.metadata?.hasDescriptionUpsell === 'true';
+
     console.log('✓ Payment verified');
+    console.log(`  Photos upsell: ${hasPhotosUpsell}`);
+    console.log(`  Description upsell: ${hasDescriptionUpsell}`);
+
+    // Generate enhanced description if upsell selected
+    let enhancedDescription = null;
+    if (hasDescriptionUpsell && propertyData.description) {
+      console.log('Generating enhanced description...');
+      enhancedDescription = await generateEnhancedDescription(propertyData);
+      console.log('✓ Enhanced description generated');
+    }
+
+    // Generate photo analysis if upsell selected
+    let photoAnalysis = null;
+    if (hasPhotosUpsell && propertyData.images && propertyData.images.length > 0) {
+      console.log('Analyzing photos...');
+      photoAnalysis = await analyzePhotos(propertyData);
+      console.log('✓ Photo analysis completed');
+    }
 
     // Generate AI pricing analysis
     const analysis = await generatePricingAnalysis(propertyData);
 
     console.log('✓ AI analysis completed');
 
-    // Generate HTML report
+    // Generate HTML report with upsells
     const reportHTML = generateReportHTML({
       propertyData,
-      analysis
+      analysis,
+      enhancedDescription,
+      photoAnalysis,
+      hasPhotosUpsell,
+      hasDescriptionUpsell
     });
 
     console.log('✓ HTML report generated');
@@ -388,4 +415,101 @@ function generateBasicPricing(propertyData, months) {
       'Улучшите описание объекта с акцентом на уникальные преимущества'
     ]
   };
+}
+
+/**
+ * Generate enhanced marketing description for property (€15 upsell)
+ */
+async function generateEnhancedDescription(propertyData) {
+  try {
+    const prompt = `Create a compelling marketing description for this rental property:
+
+Property: ${propertyData.title}
+Location: ${propertyData.location.city}, ${propertyData.location.country}
+Current description: ${propertyData.description || 'None'}
+Rating: ${propertyData.rating.average}/10
+Capacity: ${propertyData.capacity.guests} guests, ${propertyData.capacity.bedrooms} bedrooms
+
+Task: Write a professional, compelling marketing description (150-250 words) that:
+1. Highlights unique selling points
+2. Describes location benefits and nearby attractions
+3. Creates emotional connection with potential guests
+4. Emphasizes value and experience
+5. Uses persuasive language without sounding salesy
+
+Write in Russian (informal, friendly tone using "вы").
+Focus on experiences and benefits, not just features.`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert copywriter for luxury vacation rentals. Write compelling, authentic descriptions that convert browsers into bookers.'
+        },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 500
+    });
+
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error('Enhanced description generation failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Analyze property photos and provide recommendations (€50 upsell)
+ */
+async function analyzePhotos(propertyData) {
+  if (!propertyData.images || propertyData.images.length === 0) {
+    return null;
+  }
+
+  try {
+    const photoCount = propertyData.images.length;
+    const prompt = `Analyze ${photoCount} property photos for a rental listing:
+
+Property: ${propertyData.title}
+Location: ${propertyData.location.city}, ${propertyData.location.country}
+Photo URLs available: ${photoCount}
+
+Based on typical vacation rental photography standards, provide:
+
+1. Overall photo quality assessment (1-10 scale)
+2. What's working well (2-3 points)
+3. Missing photo types (e.g., kitchen detail, bathroom, outdoor areas, local attractions)
+4. Specific improvement recommendations (4-5 actionable points)
+5. Photo sequence/order recommendations
+
+Return JSON format:
+{
+  "overallScore": 7,
+  "strengths": ["list of strengths"],
+  "missing": ["list of missing photo types"],
+  "recommendations": ["list of specific improvements"],
+  "sequenceAdvice": "advice on photo order"
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional vacation rental photographer and marketing consultant. Provide actionable, specific advice.'
+        },
+        { role: 'user', content: prompt }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.5,
+      max_tokens: 800
+    });
+
+    return JSON.parse(response.choices[0].message.content);
+  } catch (error) {
+    console.error('Photo analysis failed:', error);
+    return null;
+  }
 }

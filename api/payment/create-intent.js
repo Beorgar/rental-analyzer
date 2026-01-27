@@ -20,14 +20,16 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { amount, email, propertyId } = req.body;
+    const { amount, email, propertyId, selectedUpsells } = req.body;
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount, // in cents
-      currency: 'usd',
+      currency: 'eur',
       metadata: {
         email,
         propertyId,
+        hasDescriptionUpsell: selectedUpsells?.description ? 'true' : 'false',
+        hasPhotosUpsell: selectedUpsells?.photos ? 'true' : 'false',
       },
     });
 
