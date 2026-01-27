@@ -255,23 +255,13 @@ function CheckoutForm({ propertyData }) {
 
         {error && <div className="error-message">{error}</div>}
 
-        {/* Progress Status */}
-        {progressStatus && (
-          <div className="progress-status">
-            <div className="progress-spinner"></div>
-            <p>{progressStatus}</p>
-          </div>
-        )}
-
         {/* Submit Button */}
         <button
           type="submit"
           className="submit-payment-btn"
           disabled={!stripe || processing || !email}
         >
-          {processing && !progressStatus ? 'Обработка платежа...' :
-           processing ? 'Генерируем отчёт...' :
-           `Оплатить €${totalPrice.toFixed(2)}`}
+          {processing ? 'Обработка платежа...' : `Оплатить €${totalPrice.toFixed(2)}`}
         </button>
 
         <p className="security-note">
