@@ -21,9 +21,9 @@ function CheckoutForm({ propertyData }) {
   const [progressStatus, setProgressStatus] = useState('');
 
   // Pricing
-  const basePrice = 49.99; // Price in dollars
-  const upsellDescriptionPrice = 29.99;
-  const upsellPhotosPrice = 99.99;
+  const basePrice = 10.00; // Price in EUR
+  const upsellDescriptionPrice = 15.00;
+  const upsellPhotosPrice = 50.00;
 
   const [selectedUpsells, setSelectedUpsells] = useState({
     description: false,
@@ -188,7 +188,7 @@ function CheckoutForm({ propertyData }) {
                 <li>Рекомендации по конкурентному позиционированию</li>
               </ul>
             </div>
-            <div className="price">${basePrice.toFixed(2)}</div>
+            <div className="price">€{basePrice.toFixed(2)}</div>
           </div>
 
           {/* Upsells */}
@@ -196,7 +196,7 @@ function CheckoutForm({ propertyData }) {
             <h3>🚀 Дополнительные услуги</h3>
 
             <div
-              className={`upsell-item ${selectedUpsells.description ? 'selected' : ''}`}
+              className={`upsell-item €{selectedUpsells.description ? 'selected' : ''}`}
               onClick={() => toggleUpsell('description')}
             >
               <div className="upsell-checkbox">
@@ -214,11 +214,11 @@ function CheckoutForm({ propertyData }) {
                   оптимизированное для поисковых систем и увеличения конверсии
                 </p>
               </div>
-              <div className="upsell-price">+${upsellDescriptionPrice.toFixed(2)}</div>
+              <div className="upsell-price">+€{upsellDescriptionPrice.toFixed(2)}</div>
             </div>
 
             <div
-              className={`upsell-item ${selectedUpsells.photos ? 'selected' : ''}`}
+              className={`upsell-item €{selectedUpsells.photos ? 'selected' : ''}`}
               onClick={() => toggleUpsell('photos')}
             >
               <div className="upsell-checkbox">
@@ -236,7 +236,7 @@ function CheckoutForm({ propertyData }) {
                   фотосессии. Качественные фото увеличивают бронирования на 40%
                 </p>
               </div>
-              <div className="upsell-price">+${upsellPhotosPrice.toFixed(2)}</div>
+              <div className="upsell-price">+€{upsellPhotosPrice.toFixed(2)}</div>
             </div>
           </div>
         </div>
@@ -268,7 +268,7 @@ function CheckoutForm({ propertyData }) {
         <div className="total-section">
           <div className="total-row">
             <span>Итого:</span>
-            <span className="total-amount">${totalPrice.toFixed(2)}</span>
+            <span className="total-amount">€{totalPrice.toFixed(2)}</span>
           </div>
         </div>
 
@@ -290,7 +290,7 @@ function CheckoutForm({ propertyData }) {
         >
           {processing && !progressStatus ? 'Обработка платежа...' :
            processing ? 'Генерируем отчёт...' :
-           `Оплатить $${totalPrice.toFixed(2)}`}
+           `Оплатить €€{totalPrice.toFixed(2)}`}
         </button>
 
         <p className="security-note">

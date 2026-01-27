@@ -96,15 +96,15 @@ async function generatePricingAnalysis(propertyData) {
   const currentDate = new Date();
   const currentMonth = currentDate.toLocaleString('en-US', { month: 'long' });
 
-  // Generate next 6 months
+  // Generate next 3 months (quarterly report)
   const months = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 3; i++) {
     const date = new Date(currentDate);
     date.setMonth(date.getMonth() + i);
     months.push(date.toLocaleString('en-US', { month: 'long' }));
   }
 
-  const prompt = `You are an expert pricing analyst for short-term rental properties on Booking.com.
+  const prompt = `You are an expert pricing analyst and tourism consultant for short-term rental properties.
 
 PROPERTY DATA:
 - Name: ${propertyData.title}
@@ -115,58 +115,86 @@ PROPERTY DATA:
 - Platform: Booking.com
 
 TASK:
-Calculate optimal pricing strategy for the NEXT 6 MONTHS: ${months.join(', ')}.
+Create a DETAILED quarterly pricing strategy for the NEXT 3 MONTHS: ${months.join(', ')}.
+This is a PREMIUM report - provide deep insights based on local tourism data.
 
-ANALYSIS FRAMEWORK:
+DEEP ANALYSIS FRAMEWORK:
 
-1. SEASONALITY for ${propertyData.location.city}, ${propertyData.location.country}:
-   - High season months (adjust +25-35% above base)
-   - Medium season months (adjust +10-15% above base)
-   - Low season months (adjust -10-15% below base)
-   - Consider local tourism patterns, ski season, summer holidays, etc.
+1. REGIONAL TOURISM ANALYSIS for ${propertyData.location.city}, ${propertyData.location.country}:
 
-2. RATING ADJUSTMENT:
-   - Rating ≥ 9.0: Premium property → +15%
-   - Rating 8.0-8.9: Good property → +5%
-   - Rating < 8.0: Average property → 0%
+   A) Tourism Type & Seasonality:
+   - What type of tourism dominates? (ski, beach, city/culture, business, events)
+   - Peak season vs off-season patterns for this specific region
+   - Weather impact on demand
+   - School holiday periods (local and international)
 
-3. OCCUPANCY ESTIMATES:
-   - High season: 85-90%
-   - Medium season: 70-80%
-   - Low season: 60-70%
+   B) Local Events & Attractions:
+   - Major events, festivals, conferences in ${propertyData.location.city} during these 3 months
+   - Nearby attractions (ski resorts, beaches, museums, landmarks)
+   - Distance to key points of interest
+   - Sports events, concerts, trade shows
 
-CALCULATION RULES:
-- Base calculations on current price: ${propertyData.pricing.basePrice}
-- Apply seasonality multiplier first, then rating adjustment
-- Round final prices to nearest 5
-- Be realistic - avoid suggesting more than 50% price changes
-- Consider ${propertyData.location.city} specific tourism trends
+   C) Tourist Demographics:
+   - Who visits ${propertyData.location.city}? (families, couples, business travelers, groups)
+   - International vs domestic tourists
+   - Average length of stay
+   - Booking patterns (last-minute vs advance)
+
+2. COMPETITIVE LANDSCAPE:
+   - Market positioning based on rating ${propertyData.rating.average}/10
+   - Price competitiveness for ${propertyData.capacity.guests} guests in ${propertyData.location.city}
+   - Premium properties (9.0+): charge 15-25% more
+   - Good properties (8.0-8.9): charge 5-10% more
+   - Average properties (<8.0): stay competitive
+
+3. PRICING STRATEGY:
+   - High season: +25-40% (peak tourism months)
+   - Shoulder season: +10-20% (moderate demand)
+   - Low season: -10-20% (maintain occupancy)
+   - Weekend vs weekday adjustments
+   - Special events: +30-50%
+
+4. OCCUPANCY & REVENUE OPTIMIZATION:
+   - Target occupancy: High season 85-95%, Low season 65-75%
+   - Revenue management: balance price vs occupancy
+   - Length of stay discounts consideration
+   - Early booking incentives
 
 OUTPUT REQUIREMENTS:
-Return ONLY valid JSON (no markdown, no explanations). Schema:
+Return ONLY valid JSON. Include tourism insights in the notes field.
 
 {
+  "tourismInsights": {
+    "regionType": "Description of tourism type (e.g., 'Alpine ski resort town')",
+    "peakSeason": "When and why (e.g., 'December-March for skiing')",
+    "mainAttractions": "Top 3 nearby attractions/reasons tourists visit",
+    "targetAudience": "Who books here (e.g., 'Families and ski enthusiasts')"
+  },
   "monthlyPricing": [
     {
       "month": "January",
       "recommendedPrice": 95,
-      "occupancy": "70%",
-      "notes": "Winter/ski season - medium demand"
+      "occupancy": "85%",
+      "notes": "Peak ski season - Kitzsteinhorn Glacier nearby. High demand from European tourists. Recommend dynamic pricing for weekends (+15%)."
     }
   ],
   "averagePrice": 100,
   "recommendations": [
-    "Specific actionable recommendation 1",
-    "Specific actionable recommendation 2",
-    "Specific actionable recommendation 3"
+    "Specific, actionable recommendation based on local tourism (mention specific events/attractions)",
+    "Pricing strategy recommendation with exact numbers",
+    "Marketing/positioning recommendation for target audience",
+    "Seasonality-based tip with timing",
+    "Competition-based insight"
   ]
 }
 
 IMPORTANT:
-- Return exactly 6 months of pricing (starting with ${currentMonth})
-- All prices must be realistic (between 50% and 150% of base price)
-- Recommendations must be specific and actionable
-- Use ${propertyData.pricing.currency} currency`;
+- Return exactly 3 months of pricing (starting with ${currentMonth})
+- All prices in ${propertyData.pricing.currency}
+- Be SPECIFIC about ${propertyData.location.city} - use real local knowledge
+- Mention specific attractions, events, or patterns for this location
+- Recommendations must be actionable with concrete steps
+- Price range: 50% to 150% of base price (${propertyData.pricing.basePrice})`;
 
   try {
     console.log('Calling OpenAI GPT-4o-mini...');
@@ -201,8 +229,8 @@ IMPORTANT:
       throw new Error('Invalid analysis format: missing monthlyPricing array');
     }
 
-    if (analysis.monthlyPricing.length !== 6) {
-      throw new Error(`Invalid analysis format: expected 6 months, got ${analysis.monthlyPricing.length}`);
+    if (analysis.monthlyPricing.length !== 3) {
+      throw new Error(`Invalid analysis format: expected 3 months, got ${analysis.monthlyPricing.length}`);
     }
 
     if (!analysis.averagePrice || analysis.averagePrice < 10 || analysis.averagePrice > 5000) {

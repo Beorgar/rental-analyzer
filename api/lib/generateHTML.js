@@ -274,15 +274,39 @@ function generateReportHTML(data) {
         <p>
           💡 <strong>Ключевой инсайт:</strong>
           ${analysis.averagePrice > propertyData.pricing.basePrice
-            ? `Вы занижаете цены! Рекомендуем повысить среднюю цену до ${propertyData.pricing.currency === 'EUR' ? '€' : '$'}${analysis.averagePrice}/ночь (+${Math.round(((analysis.averagePrice - propertyData.pricing.basePrice) / propertyData.pricing.basePrice) * 100)}%). Это увеличит доход на ${propertyData.pricing.currency === 'EUR' ? '€' : '$'}${Math.round((analysis.averagePrice - propertyData.pricing.basePrice) * 180)} за 6 месяцев при средней загрузке 75%.`
+            ? `Вы занижаете цены! Рекомендуем повысить среднюю цену до ${propertyData.pricing.currency === 'EUR' ? '€' : '$'}${analysis.averagePrice}/ночь (+${Math.round(((analysis.averagePrice - propertyData.pricing.basePrice) / propertyData.pricing.basePrice) * 100)}%). Это увеличит доход на ${propertyData.pricing.currency === 'EUR' ? '€' : '$'}${Math.round((analysis.averagePrice - propertyData.pricing.basePrice) * 67)} за 3 месяца при средней загрузке 75%.`
             : `Ваши цены близки к оптимальным. Следуйте помесячным рекомендациям для максимизации дохода.`
           }
         </p>
       </div>
     </div>
 
+    ${analysis.tourismInsights ? `
     <div class="section">
-      <h2>📅 Помесячный прогноз цен (следующие 6 месяцев)</h2>
+      <h2>🌍 Анализ туризма в регионе</h2>
+      <div class="property-details">
+        <div class="detail-row">
+          <span class="label">Тип региона</span>
+          <span class="value">${analysis.tourismInsights.regionType || 'N/A'}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Пиковый сезон</span>
+          <span class="value">${analysis.tourismInsights.peakSeason || 'N/A'}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Основные достопримечательности</span>
+          <span class="value">${analysis.tourismInsights.mainAttractions || 'N/A'}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Целевая аудитория</span>
+          <span class="value">${analysis.tourismInsights.targetAudience || 'N/A'}</span>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+
+    <div class="section">
+      <h2>📅 Поквартальный прогноз цен (следующие 3 месяца)</h2>
       <table>
         <thead>
           <tr>
