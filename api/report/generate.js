@@ -3,6 +3,9 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { generateReportHTML } = require('../lib/generateHTML');
 const { generatePDF } = require('../lib/generatePDF');
 const { sendReportEmail } = require('../lib/sendEmail');
+const { researchLocation, formatResearchSummary } = require('../lib/locationResearch');
+const { getOrFetchResearch } = require('../lib/locationCache');
+const { getCouncilAnalysis } = require('../lib/llmCouncil');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -89,8 +92,8 @@ module.exports = async (req, res) => {
 };
 
 /**
- * Generate pricing analysis using OpenAI GPT-4o-mini
- * Much cheaper than Claude: $0.15/1M tokens vs $3/1M tokens
+ * Generate pricing analysis using LLM Council with real tourism data
+ * Combines multiple AI models for consensus and uses Tavily Search for real-time data
  */
 async function generatePricingAnalysis(propertyData) {
   const currentDate = new Date();
@@ -104,7 +107,33 @@ async function generatePricingAnalysis(propertyData) {
     months.push(date.toLocaleString('en-US', { month: 'long' }));
   }
 
-  const prompt = `You are an expert pricing analyst and tourism consultant for short-term rental properties.
+  // Step 1: Get or fetch tourism research data with caching
+  console.log('🔍 Fetching tourism research data...');
+  let tourismResearch = null;
+  let researchSummary = '';
+
+  try {
+    tourismResearch = await getOrFetchResearch(
+      propertyData.location.city,
+      propertyData.location.country,
+      researchLocation
+    );
+
+    if (tourismResearch) {
+      researchSummary = formatResearchSummary(tourismResearch);
+      console.log('✓ Tourism research data available');
+    } else {
+      console.log('⚠️  No tourism research data available, using AI knowledge only');
+    }
+  } catch (error) {
+    console.error('⚠️  Tourism research failed:', error.message);
+    researchSummary = '';
+  }
+
+  // Step 2: Build enhanced prompt with real tourism data
+  const systemPrompt = 'You are an expert pricing analyst and tourism consultant for short-term rental properties. Return ONLY valid JSON, no markdown, no explanations.';
+
+  const prompt = `You are analyzing a rental property with access to real tourism research data.
 
 PROPERTY DATA:
 - Name: ${propertyData.title}
@@ -114,115 +143,113 @@ PROPERTY DATA:
 - Capacity: ${propertyData.capacity.guests} guests, ${propertyData.capacity.bedrooms} bedrooms
 - Platform: Booking.com
 
+${researchSummary ? `REAL TOURISM RESEARCH DATA:
+${researchSummary}
+
+USE THIS DATA to inform your analysis. This is real, current information about the location.
+` : ''}
+
 TASK:
 Create a DETAILED quarterly pricing strategy for the NEXT 3 MONTHS: ${months.join(', ')}.
-This is a PREMIUM report - provide deep insights based on local tourism data.
+This is a PREMIUM €10 report - provide deep, actionable insights.
 
-DEEP ANALYSIS FRAMEWORK:
+ANALYSIS FRAMEWORK:
 
-1. REGIONAL TOURISM ANALYSIS for ${propertyData.location.city}, ${propertyData.location.country}:
+1. REGIONAL TOURISM ANALYSIS for ${propertyData.location.city}:
+   - Tourism type & seasonality (ski, beach, culture, business, events)
+   - Peak vs off-season patterns${researchSummary ? ' - USE THE RESEARCH DATA ABOVE' : ''}
+   - School holiday periods impact (German, Austrian, Swiss, Dutch tourists)
+   - Weather and seasonal factors
 
-   A) Tourism Type & Seasonality:
-   - What type of tourism dominates? (ski, beach, city/culture, business, events)
-   - Peak season vs off-season patterns for this specific region
-   - Weather impact on demand
-   - School holiday periods (local and international)
-
-   B) Local Events & Attractions:
-   - Major events, festivals, conferences in ${propertyData.location.city} during these 3 months
-   - Nearby attractions (ski resorts, beaches, museums, landmarks)
+2. LOCAL EVENTS & ATTRACTIONS:
+   - Specific events during ${months.join(', ')} in ${propertyData.location.city}${researchSummary ? ' - REFER TO RESEARCH DATA' : ''}
+   - Major attractions and their impact on pricing
    - Distance to key points of interest
-   - Sports events, concerts, trade shows
+   - Conferences, festivals, sports events
 
-   C) Tourist Demographics:
-   - Who visits ${propertyData.location.city}? (families, couples, business travelers, groups)
-   - International vs domestic tourists
-   - Average length of stay
-   - Booking patterns (last-minute vs advance)
+3. TOURIST DEMOGRAPHICS:
+   - Who visits ${propertyData.location.city}? (families, couples, business, groups)
+   - International vs domestic split
+   - Typical length of stay
+   - Booking patterns
 
-2. COMPETITIVE LANDSCAPE:
-   - Market positioning based on rating ${propertyData.rating.average}/10
-   - Price competitiveness for ${propertyData.capacity.guests} guests in ${propertyData.location.city}
-   - Premium properties (9.0+): charge 15-25% more
-   - Good properties (8.0-8.9): charge 5-10% more
-   - Average properties (<8.0): stay competitive
+4. COMPETITIVE POSITIONING:
+   - Rating ${propertyData.rating.average}/10 impact on pricing
+   - Market position for ${propertyData.capacity.guests} guests
+   - Premium (9.0+): +15-25% | Good (8.0-8.9): +5-10% | Average (<8.0): competitive
 
-3. PRICING STRATEGY:
-   - High season: +25-40% (peak tourism months)
-   - Shoulder season: +10-20% (moderate demand)
-   - Low season: -10-20% (maintain occupancy)
-   - Weekend vs weekday adjustments
+5. PRICING & REVENUE STRATEGY:
+   - High season: +25-40% | Shoulder: +10-20% | Low: -10-20%
    - Special events: +30-50%
+   - Weekend vs weekday adjustments
+   - Target occupancy: High 85-95%, Low 65-75%
 
-4. OCCUPANCY & REVENUE OPTIMIZATION:
-   - Target occupancy: High season 85-95%, Low season 65-75%
-   - Revenue management: balance price vs occupancy
-   - Length of stay discounts consideration
-   - Early booking incentives
-
-OUTPUT REQUIREMENTS:
-Return ONLY valid JSON. Include tourism insights in the notes field.
-
+OUTPUT FORMAT (JSON):
 {
   "tourismInsights": {
-    "regionType": "Description of tourism type (e.g., 'Alpine ski resort town')",
-    "peakSeason": "When and why (e.g., 'December-March for skiing')",
-    "mainAttractions": "Top 3 nearby attractions/reasons tourists visit",
-    "targetAudience": "Who books here (e.g., 'Families and ski enthusiasts')"
+    "regionType": "Specific tourism classification",
+    "peakSeason": "Detailed seasonality explanation with months",
+    "mainAttractions": "Top 3 specific attractions/reasons to visit",
+    "targetAudience": "Detailed demographic profile"
   },
   "monthlyPricing": [
     {
-      "month": "January",
-      "recommendedPrice": 95,
+      "month": "Month name",
+      "recommendedPrice": 100,
       "occupancy": "85%",
-      "notes": "Peak ski season - Kitzsteinhorn Glacier nearby. High demand from European tourists. Recommend dynamic pricing for weekends (+15%)."
+      "notes": "SPECIFIC insights: mention actual events, attractions, tourist patterns for THIS month in THIS city"
     }
   ],
   "averagePrice": 100,
   "recommendations": [
-    "Specific, actionable recommendation based on local tourism (mention specific events/attractions)",
-    "Pricing strategy recommendation with exact numbers",
-    "Marketing/positioning recommendation for target audience",
-    "Seasonality-based tip with timing",
-    "Competition-based insight"
+    "5 specific, actionable recommendations with concrete numbers and local context"
   ]
 }
 
-IMPORTANT:
-- Return exactly 3 months of pricing (starting with ${currentMonth})
+CRITICAL REQUIREMENTS:
+- Return exactly 3 months starting with ${currentMonth}
 - All prices in ${propertyData.pricing.currency}
-- Be SPECIFIC about ${propertyData.location.city} - use real local knowledge
-- Mention specific attractions, events, or patterns for this location
-- Recommendations must be actionable with concrete steps
-- Price range: 50% to 150% of base price (${propertyData.pricing.basePrice})`;
+- Price range: 50% to 150% of base (${propertyData.pricing.basePrice})
+- BE SPECIFIC: Use real location names, event names, attraction names
+- Each month's notes must mention specific reasons for that price${researchSummary ? '\n- USE THE TOURISM RESEARCH DATA PROVIDED ABOVE' : ''}
+- Recommendations must be actionable with exact steps`;
 
   try {
-    console.log('Calling OpenAI GPT-4o-mini...');
+    // Step 3: Check if LLM Council is enabled (requires multiple API keys)
+    const useCouncil = process.env.USE_LLM_COUNCIL === 'true' &&
+                       (process.env.ANTHROPIC_API_KEY || process.env.GOOGLE_AI_API_KEY);
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a pricing analyst. Return ONLY valid JSON, no markdown, no explanations.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.3,
-      max_tokens: 2000
-    });
+    let analysis;
 
-    const content = response.choices[0].message.content;
+    if (useCouncil) {
+      // Use LLM Council for multi-model consensus
+      console.log('🏛️  Using LLM Council for analysis...');
+      analysis = await getCouncilAnalysis(prompt, systemPrompt, propertyData);
+    } else {
+      // Fallback to single model (GPT-4 or GPT-4o-mini based on env)
+      const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+      console.log(`🤖 Using ${model} for analysis...`);
 
-    if (!content) {
-      throw new Error('Empty response from OpenAI');
+      const response = await openai.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.3,
+        max_tokens: 3000
+      });
+
+      const content = response.choices[0].message.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      analysis = JSON.parse(content);
+
+      console.log(`✓ ${model} analysis complete. Tokens:`, response.usage?.total_tokens || 'N/A');
     }
-
-    const analysis = JSON.parse(content);
 
     // Validation
     if (!analysis.monthlyPricing || !Array.isArray(analysis.monthlyPricing)) {
@@ -245,16 +272,19 @@ IMPORTANT:
       ];
     }
 
-    console.log('✓ OpenAI analysis successful. Tokens:', response.usage?.total_tokens || 'N/A');
-    console.log(`  Input: ${response.usage?.prompt_tokens || 'N/A'}, Output: ${response.usage?.completion_tokens || 'N/A'}`);
+    // Add research metadata to analysis
+    if (tourismResearch) {
+      analysis._researchMetadata = {
+        hasRealData: true,
+        researchDate: tourismResearch.timestamp
+      };
+    }
 
     return analysis;
 
   } catch (error) {
-    console.error('OpenAI analysis failed:', error);
-
-    // Fallback to basic calculation
-    console.log('Using fallback pricing calculation...');
+    console.error('❌ AI analysis failed:', error);
+    console.log('→ Using fallback pricing calculation...');
     return generateBasicPricing(propertyData, months);
   }
 }

@@ -290,7 +290,7 @@ function CheckoutForm({ propertyData }) {
         >
           {processing && !progressStatus ? 'Обработка платежа...' :
            processing ? 'Генерируем отчёт...' :
-           `Оплатить €€{totalPrice.toFixed(2)}`}
+           `Оплатить €${totalPrice.toFixed(2)}`}
         </button>
 
         <p className="security-note">
