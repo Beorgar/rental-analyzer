@@ -18,7 +18,6 @@ function CheckoutForm({ propertyData }) {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [clientSecret, setClientSecret] = useState('');
-  const [progressStatus, setProgressStatus] = useState('');
 
   // Pricing
   const basePrice = 10.00; // Price in EUR
