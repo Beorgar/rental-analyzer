@@ -29,7 +29,7 @@
     "@vercel/node": "^3.0.0",
     "openai": "^4.70.4",
     "resend": "^4.0.1",
-    "tavily": "^1.1.0",
+    "@tavily/core": "^0.6.4",
     "@google/generative-ai": "^0.21.0",
     "@supabase/supabase-js": "^2.47.10"
   },

@@ -1,4 +1,4 @@
-const { tavily } = require('tavily');
+const { tavily } = require('@tavily/core');
 
 /**
  * Research tourism data for a specific location using Tavily Search API
