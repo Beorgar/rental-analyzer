@@ -1,5 +1,3 @@
-const { createClient } = require('@supabase/supabase-js');
-
 const CACHE_TTL_DAYS = 90; // Refresh data every 90 days
 
 /**
@@ -11,6 +9,16 @@ function getSupabaseClient() {
 
   if (!supabaseUrl || !supabaseKey) {
     console.warn('⚠️  Supabase credentials not set, caching disabled');
+    return null;
+  }
+
+  // Optional dependency - only require if credentials are set
+  let createClient;
+  try {
+    createClient = require('@supabase/supabase-js').createClient;
+  } catch (err) {
+    console.warn('⚠️  @supabase/supabase-js not installed, caching disabled');
+    console.warn('   Run: npm install @supabase/supabase-js');
     return null;
   }
 

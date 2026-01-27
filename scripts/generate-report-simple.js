@@ -71,7 +71,7 @@ async function scrapePropertyData(url) {
     maxOffers: 1,
     propertyType: 'none',
     includeReviews: false,
-    language: 'en',
+    language: 'en-gb',
     currency: 'EUR'
   };
 
@@ -84,27 +84,47 @@ async function scrapePropertyData(url) {
 
   const property = items[0];
 
+  // Map country codes to names
+  const countryMap = {
+    'at': 'Austria',
+    'de': 'Germany',
+    'ch': 'Switzerland',
+    'it': 'Italy',
+    'fr': 'France',
+    'es': 'Spain',
+    'uk': 'United Kingdom',
+    'us': 'United States'
+  };
+
+  // Parse images - handle both array and single string
+  let images = [];
+  if (property.image && typeof property.image === 'string') {
+    images = [property.image];
+  } else if (property.images && Array.isArray(property.images)) {
+    images = property.images;
+  }
+
   return {
     url: property.url,
     title: property.name,
     location: {
-      city: property.location?.address?.addressLocality || 'Unknown',
-      country: property.location?.address?.addressCountry || 'Unknown',
-      address: property.location?.address?.streetAddress || ''
+      city: property.address?.city || 'Unknown',
+      country: countryMap[property.address?.country?.toLowerCase()] || property.address?.country || 'Unknown',
+      address: property.address?.full || ''
     },
     pricing: {
-      basePrice: property.price || 0,
-      currency: 'EUR'
+      basePrice: property.price || 90, // Default to 90 EUR if no price
+      currency: property.currency || 'EUR'
     },
     rating: {
-      average: property.rating?.value || 0,
-      reviewCount: property.rating?.reviewCount || 0
+      average: property.rating || 0,
+      reviewCount: property.reviews || 0
     },
     capacity: {
-      guests: property.capacity || 2,
+      guests: property.capacity || 4,
       bedrooms: property.bedrooms || 1
     },
-    images: property.images?.slice(0, 5) || []
+    images: images.slice(0, 5)
   };
 }
 

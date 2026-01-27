@@ -1,6 +1,4 @@
 const OpenAI = require('openai');
-const Anthropic = require('@anthropic-ai/sdk').default;
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 /**
  * LLM Council - Query multiple AI models and aggregate results
@@ -22,13 +20,13 @@ async function queryGPT4(prompt, systemPrompt) {
     const openai = new OpenAI({ apiKey });
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: 8000,
+      max_tokens: 2000,
     });
 
     const content = response.choices[0].message.content;
@@ -51,13 +49,22 @@ async function queryClaude(prompt, systemPrompt) {
     return null;
   }
 
+  // Optional dependency
+  let Anthropic;
+  try {
+    Anthropic = require('@anthropic-ai/sdk').default;
+  } catch (err) {
+    console.warn('⚠️  @anthropic-ai/sdk not installed, skipping Claude');
+    return null;
+  }
+
   try {
     console.log('  → Querying Claude Sonnet...');
     const anthropic = new Anthropic({ apiKey });
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 8000,
+      model: 'claude-3-7-sonnet-20250219',
+      max_tokens: 4096,
       system: systemPrompt,
       messages: [
         { role: 'user', content: prompt },
@@ -85,6 +92,15 @@ async function queryGemini(prompt, systemPrompt) {
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) {
     console.warn('⚠️  Google AI API key not set, skipping Gemini');
+    return null;
+  }
+
+  // Optional dependency
+  let GoogleGenerativeAI;
+  try {
+    GoogleGenerativeAI = require('@google/generative-ai').GoogleGenerativeAI;
+  } catch (err) {
+    console.warn('⚠️  @google/generative-ai not installed, skipping Gemini');
     return null;
   }
 
@@ -208,7 +224,7 @@ Output a single JSON object with the complete analysis.`;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o',
       messages: [
         {
           role: 'system',
@@ -217,7 +233,7 @@ Output a single JSON object with the complete analysis.`;
         { role: 'user', content: synthesisPrompt },
       ],
       temperature: 0.3, // Lower temperature for more consistent synthesis
-      max_tokens: 8000,
+      max_tokens: 2000,
       response_format: { type: 'json_object' },
     });
 

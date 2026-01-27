@@ -1,5 +1,3 @@
-const { tavily } = require('@tavily/core');
-
 /**
  * Research tourism data for a specific location using Tavily Search API
  * @param {Object} location - Location object with city, country, etc.
@@ -10,6 +8,16 @@ async function researchLocation(location) {
 
   if (!apiKey) {
     console.warn('⚠️  TAVILY_API_KEY not set, skipping tourism research');
+    return null;
+  }
+
+  // Optional dependency - only require if API key is set
+  let tavily;
+  try {
+    tavily = require('@tavily/core').tavily;
+  } catch (err) {
+    console.warn('⚠️  @tavily/core not installed, skipping tourism research');
+    console.warn('   Run: npm install @tavily/core');
     return null;
   }
 

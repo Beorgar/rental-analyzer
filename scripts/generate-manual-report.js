@@ -51,7 +51,7 @@ async function main() {
 
     // Step 4: Generate HTML report
     console.log('4️⃣ Generating HTML report...');
-    const html = generateHTML(propertyData, analysis);
+    const html = generateHTML(propertyData, analysis, tourismData);
     console.log(`✓ HTML generated\n`);
 
     // Step 5: Generate PDF
@@ -88,7 +88,7 @@ async function scrapePropertyData(url) {
     maxOffers: 1,
     propertyType: 'none',
     includeReviews: false,
-    language: 'en',
+    language: 'en-gb',
     currency: 'EUR'
   };
 
@@ -101,28 +101,48 @@ async function scrapePropertyData(url) {
 
   const property = items[0];
 
+  // Map country codes to names
+  const countryMap = {
+    'at': 'Austria',
+    'de': 'Germany',
+    'ch': 'Switzerland',
+    'it': 'Italy',
+    'fr': 'France',
+    'es': 'Spain',
+    'uk': 'United Kingdom',
+    'us': 'United States'
+  };
+
+  // Parse images - handle both array and single string
+  let images = [];
+  if (property.image && typeof property.image === 'string') {
+    images = [property.image];
+  } else if (property.images && Array.isArray(property.images)) {
+    images = property.images;
+  }
+
   return {
     url: property.url,
     title: property.name,
     description: property.description || '',
     location: {
-      city: property.location?.address?.addressLocality || 'Unknown',
-      country: property.location?.address?.addressCountry || 'Unknown',
-      address: property.location?.address?.streetAddress || ''
+      city: property.address?.city || 'Unknown',
+      country: countryMap[property.address?.country?.toLowerCase()] || property.address?.country || 'Unknown',
+      address: property.address?.full || ''
     },
     pricing: {
-      basePrice: property.price || 0,
-      currency: 'EUR'
+      basePrice: property.price || 90, // Default to 90 EUR if no price
+      currency: property.currency || 'EUR'
     },
     rating: {
-      average: property.rating?.value || 0,
-      reviewCount: property.rating?.reviewCount || 0
+      average: property.rating || 0,
+      reviewCount: property.reviews || 0
     },
     capacity: {
-      guests: property.capacity || 2,
+      guests: property.capacity || 4,
       bedrooms: property.bedrooms || 1
     },
-    images: property.images?.slice(0, 5) || []
+    images: images.slice(0, 5)
   };
 }
 
@@ -200,7 +220,7 @@ ${researchSummary ? '- USE THE TOURISM RESEARCH DATA' : ''}`;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt }
@@ -214,7 +234,7 @@ ${researchSummary ? '- USE THE TOURISM RESEARCH DATA' : ''}`;
   }
 }
 
-function generateHTML(propertyData, analysis) {
+function generateHTML(propertyData, analysis, tourismData = null) {
   const date = new Date().toLocaleDateString('ru-RU');
 
   return `<!DOCTYPE html>
