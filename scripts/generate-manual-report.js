@@ -104,6 +104,7 @@ async function scrapePropertyData(url) {
   return {
     url: property.url,
     title: property.name,
+    description: property.description || '',
     location: {
       city: property.location?.address?.addressLocality || 'Unknown',
       country: property.location?.address?.addressCountry || 'Unknown',
