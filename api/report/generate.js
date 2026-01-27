@@ -130,8 +130,22 @@ async function generatePricingAnalysis(propertyData) {
     researchSummary = '';
   }
 
-  // Step 2: Build enhanced prompt with real tourism data
-  const systemPrompt = 'You are an expert pricing analyst and tourism consultant for short-term rental properties. Return ONLY valid JSON, no markdown, no explanations.';
+  // Step 2: Calculate days in each month for daily pricing
+  const monthDetails = [];
+  for (let i = 0; i < 3; i++) {
+    const monthDate = new Date(currentDate);
+    monthDate.setMonth(monthDate.getMonth() + i);
+    const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
+    monthDetails.push({
+      month: months[i],
+      year: monthDate.getFullYear(),
+      monthIndex: monthDate.getMonth() + 1,
+      daysInMonth
+    });
+  }
+
+  // Step 3: Build enhanced prompt with real tourism data and daily pricing
+  const systemPrompt = 'You are an expert pricing analyst and tourism consultant for short-term rental properties in Austria. Return ONLY valid JSON, no markdown, no explanations.';
 
   const prompt = `You are analyzing a rental property with access to real tourism research data.
 
@@ -149,58 +163,87 @@ ${researchSummary}
 USE THIS DATA to inform your analysis. This is real, current information about the location.
 ` : ''}
 
+SCHOOL HOLIDAYS 2026 (KEY MARKETS FOR AUSTRIAN TOURISM):
+Germany (varies by state):
+- Winter holidays: Feb 2-16 (most states)
+- Easter holidays: Mar 30 - Apr 13
+- Pentecost: May 18-30
+
+Switzerland:
+- Winter holidays: Jan 31 - Feb 15
+- Spring holidays: Apr 11-26
+
+Netherlands:
+- Winter holidays: Feb 21 - Mar 1
+- May holiday: Apr 25 - May 10
+
+Austria:
+- Winter semester break: Feb 7-15
+- Easter holidays: Mar 28 - Apr 7
+
 TASK:
-Create a DETAILED quarterly pricing strategy for the NEXT 3 MONTHS: ${months.join(', ')}.
-This is a PREMIUM €10 report - provide deep, actionable insights.
+Create a DETAILED DAY-BY-DAY pricing strategy for the NEXT 3 MONTHS: ${months.join(', ')}.
+This is a PREMIUM report - provide a recommended price for EVERY SINGLE DAY with reasoning.
 
 ANALYSIS FRAMEWORK:
 
 1. REGIONAL TOURISM ANALYSIS for ${propertyData.location.city}:
    - Tourism type & seasonality (ski, beach, culture, business, events)
    - Peak vs off-season patterns${researchSummary ? ' - USE THE RESEARCH DATA ABOVE' : ''}
-   - School holiday periods impact (German, Austrian, Swiss, Dutch tourists)
+   - School holiday impact from Germany, Switzerland, Netherlands, Austria
    - Weather and seasonal factors
 
 2. LOCAL EVENTS & ATTRACTIONS:
    - Specific events during ${months.join(', ')} in ${propertyData.location.city}${researchSummary ? ' - REFER TO RESEARCH DATA' : ''}
    - Major attractions and their impact on pricing
-   - Distance to key points of interest
    - Conferences, festivals, sports events
+   - Ski season timing (if applicable)
 
-3. TOURIST DEMOGRAPHICS:
-   - Who visits ${propertyData.location.city}? (families, couples, business, groups)
-   - International vs domestic split
-   - Typical length of stay
-   - Booking patterns
-
-4. COMPETITIVE POSITIONING:
-   - Rating ${propertyData.rating.average}/10 impact on pricing
-   - Market position for ${propertyData.capacity.guests} guests
-   - Premium (9.0+): +15-25% | Good (8.0-8.9): +5-10% | Average (<8.0): competitive
-
-5. PRICING & REVENUE STRATEGY:
-   - High season: +25-40% | Shoulder: +10-20% | Low: -10-20%
-   - Special events: +30-50%
-   - Weekend vs weekday adjustments
-   - Target occupancy: High 85-95%, Low 65-75%
+3. DAY-BY-DAY PRICING RULES:
+   - School holidays (above dates): +30-50% (peak demand from families)
+   - Weekends (Fri-Sun): +20-35% vs weekdays
+   - Major holidays/events: +40-70%
+   - Weekdays (Mon-Thu) off-season: base or -10-15%
+   - Consider day of week + season + events for EACH day
 
 OUTPUT FORMAT (JSON):
 {
   "tourismInsights": {
     "regionType": "Specific tourism classification",
-    "peakSeason": "Detailed seasonality explanation with months",
-    "mainAttractions": "Top 3 specific attractions/reasons to visit",
-    "targetAudience": "Detailed demographic profile"
+    "peakSeason": "Detailed seasonality with months and school holiday impact",
+    "mainAttractions": "Top 3 specific attractions",
+    "targetAudience": "Detailed demographic profile",
+    "schoolHolidaysImpact": "How German/Swiss/Dutch/Austrian school holidays affect demand"
   },
   "monthlyPricing": [
     {
-      "month": "Month name",
-      "recommendedPrice": 100,
-      "occupancy": "85%",
-      "notes": "SPECIFIC insights: mention actual events, attractions, tourist patterns for THIS month in THIS city"
+      "month": "${monthDetails[0].month}",
+      "year": ${monthDetails[0].year},
+      "monthSummary": "Brief overview of this month's pricing strategy and key events/holidays",
+      "dailyPrices": [
+        {"day": 1, "date": "${monthDetails[0].year}-${String(monthDetails[0].monthIndex).padStart(2, '0')}-01", "dayOfWeek": "Day name", "price": 100, "reason": "Specific reason (5-15 words)"},
+        {"day": 2, "date": "${monthDetails[0].year}-${String(monthDetails[0].monthIndex).padStart(2, '0')}-02", "dayOfWeek": "Day name", "price": 105, "reason": "Specific reason"}
+        // ... continue for all ${monthDetails[0].daysInMonth} days
+      ]
+    },
+    {
+      "month": "${monthDetails[1].month}",
+      "year": ${monthDetails[1].year},
+      "monthSummary": "Overview for month 2",
+      "dailyPrices": [
+        // ... all ${monthDetails[1].daysInMonth} days
+      ]
+    },
+    {
+      "month": "${monthDetails[2].month}",
+      "year": ${monthDetails[2].year},
+      "monthSummary": "Overview for month 3",
+      "dailyPrices": [
+        // ... all ${monthDetails[2].daysInMonth} days
+      ]
     }
   ],
-  "averagePrice": 100,
+  "averagePrice": 110,
   "recommendations": [
     "5 specific, actionable recommendations with concrete numbers and local context"
   ]
@@ -208,10 +251,15 @@ OUTPUT FORMAT (JSON):
 
 CRITICAL REQUIREMENTS:
 - Return exactly 3 months starting with ${currentMonth}
+- Each month must have dailyPrices array with EVERY SINGLE DAY
+- Month 1: ${monthDetails[0].daysInMonth} days, Month 2: ${monthDetails[1].daysInMonth} days, Month 3: ${monthDetails[2].daysInMonth} days
 - All prices in ${propertyData.pricing.currency}
 - Price range: 50% to 150% of base (${propertyData.pricing.basePrice})
-- BE SPECIFIC: Use real location names, event names, attraction names
-- Each month's notes must mention specific reasons for that price${researchSummary ? '\n- USE THE TOURISM RESEARCH DATA PROVIDED ABOVE' : ''}
+- HIGHER prices on: weekends, school holidays, events, peak season
+- LOWER prices on: weekdays in off-season
+- Each day must have price + short reason mentioning why (weekend/holiday/event/weekday)
+- Include schoolHolidaysImpact in tourismInsights explaining German/Swiss/Dutch/Austrian holiday periods
+${researchSummary ? '- USE THE TOURISM RESEARCH DATA for specific event dates' : ''}
 - Recommendations must be actionable with exact steps`;
 
   try {

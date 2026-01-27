@@ -301,35 +301,93 @@ function generateReportHTML(data) {
           <span class="label">Целевая аудитория</span>
           <span class="value">${analysis.tourismInsights.targetAudience || 'N/A'}</span>
         </div>
+        ${analysis.tourismInsights.schoolHolidaysImpact ? `
+        <div class="detail-row">
+          <span class="label">Влияние школьных каникул</span>
+          <span class="value">${analysis.tourismInsights.schoolHolidaysImpact}</span>
+        </div>
+        ` : ''}
       </div>
     </div>
     ` : ''}
 
     <div class="section">
-      <h2>📅 Поквартальный прогноз цен (следующие 3 месяца)</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Месяц</th>
-            <th>Рекомендуемая цена</th>
-            <th>Прогноз загрузки</th>
-            <th>Примечания</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${analysis.monthlyPricing.map(month => `
-            <tr>
-              <td><strong>${month.month}</strong></td>
-              <td class="price-cell">${propertyData.pricing.currency === 'EUR' ? '€' : '$'}${month.recommendedPrice}</td>
-              <td>${month.occupancy}</td>
-              <td style="color: #64748b;">${month.notes}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+      <h2>📅 Посуточный прогноз цен (следующие 3 месяца)</h2>
 
-      <p style="color: #64748b; font-size: 0.95rem; margin-top: 20px;">
-        * Прогноз основан на сезонности, рейтинге объекта, локации и текущих рыночных трендах
+      ${analysis.monthlyPricing && analysis.monthlyPricing[0]?.dailyPrices ?
+        // NEW FORMAT: Daily pricing tables
+        analysis.monthlyPricing.map((monthData, monthIdx) => `
+          <div style="margin-bottom: 50px;">
+            <h3 style="font-size: 1.5rem; color: #1e293b; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;">
+              ${monthData.month} ${monthData.year || ''}
+            </h3>
+            ${monthData.monthSummary ? `
+              <div class="highlight-box" style="margin-bottom: 20px;">
+                <p style="margin: 0; color: #1e40af; font-size: 1rem;">
+                  <strong>Обзор месяца:</strong> ${monthData.monthSummary}
+                </p>
+              </div>
+            ` : ''}
+
+            <table style="font-size: 0.95rem;">
+              <thead>
+                <tr>
+                  <th style="width: 8%;">День</th>
+                  <th style="width: 12%;">Дата</th>
+                  <th style="width: 15%;">День недели</th>
+                  <th style="width: 15%;">Цена</th>
+                  <th style="width: 50%;">Причина / Обоснование</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${monthData.dailyPrices.map(day => {
+                  const isWeekend = day.dayOfWeek === 'Saturday' || day.dayOfWeek === 'Sunday' || day.dayOfWeek === 'Friday';
+                  return `
+                    <tr style="${isWeekend ? 'background: #fef3c7;' : ''}">
+                      <td style="font-weight: 600;">${day.day}</td>
+                      <td>${day.date ? day.date.substring(5) : `${monthData.monthIndex || monthIdx + 1}/${day.day}`}</td>
+                      <td>${day.dayOfWeek}</td>
+                      <td class="price-cell" style="font-size: 1.2rem;">${propertyData.pricing.currency === 'EUR' ? '€' : '$'}${day.price}</td>
+                      <td style="color: #64748b; font-size: 0.9rem;">${day.reason || 'Standard pricing'}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+
+            <p style="color: #64748b; font-size: 0.9rem; margin-top: 15px; padding: 10px; background: #f8fafc; border-radius: 5px;">
+              <strong>Средняя цена за месяц:</strong> ${propertyData.pricing.currency === 'EUR' ? '€' : '$'}${Math.round(monthData.dailyPrices.reduce((sum, d) => sum + d.price, 0) / monthData.dailyPrices.length)}
+              | <strong>Мин:</strong> ${propertyData.pricing.currency === 'EUR' ? '€' : '$'}${Math.min(...monthData.dailyPrices.map(d => d.price))}
+              | <strong>Макс:</strong> ${propertyData.pricing.currency === 'EUR' ? '€' : '$'}${Math.max(...monthData.dailyPrices.map(d => d.price))}
+            </p>
+          </div>
+        `).join('')
+      :
+        // OLD FORMAT: Fallback to monthly summary table
+        `<table>
+          <thead>
+            <tr>
+              <th>Месяц</th>
+              <th>Рекомендуемая цена</th>
+              <th>Прогноз загрузки</th>
+              <th>Примечания</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${analysis.monthlyPricing.map(month => `
+              <tr>
+                <td><strong>${month.month}</strong></td>
+                <td class="price-cell">${propertyData.pricing.currency === 'EUR' ? '€' : '$'}${month.recommendedPrice}</td>
+                <td>${month.occupancy || 'N/A'}</td>
+                <td style="color: #64748b;">${month.notes || 'N/A'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`
+      }
+
+      <p style="color: #64748b; font-size: 0.95rem; margin-top: 30px;">
+        <strong>Примечание:</strong> Выходные дни (пятница-воскресенье) выделены желтым. Цены учитывают сезонность, день недели, школьные каникулы и локальные события.
       </p>
     </div>
 
