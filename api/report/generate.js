@@ -313,7 +313,7 @@ ${researchSummary ? '- USE THE TOURISM RESEARCH DATA for specific event dates' :
         ],
         response_format: { type: 'json_object' },
         temperature: 0.3,
-        max_tokens: 3000
+        max_tokens: 8000
       });
 
       const content = response.choices[0].message.content;
@@ -365,51 +365,94 @@ ${researchSummary ? '- USE THE TOURISM RESEARCH DATA for specific event dates' :
 }
 
 /**
- * Fallback pricing calculation if AI fails
+ * Fallback pricing calculation with daily prices if AI fails
  */
 function generateBasicPricing(propertyData, months) {
   const basePrice = propertyData.pricing.basePrice;
   const rating = propertyData.rating.average;
   const ratingBonus = rating >= 9 ? 1.15 : rating >= 8 ? 1.05 : 1.0;
+  const currentDate = new Date();
 
   // Simple seasonal pattern
   const seasonalPatterns = {
-    'January': { multiplier: 1.1, occupancy: '70%', notes: 'Winter season' },
-    'February': { multiplier: 1.0, occupancy: '65%', notes: 'Low season' },
-    'March': { multiplier: 0.9, occupancy: '65%', notes: 'Spring starts' },
-    'April': { multiplier: 1.0, occupancy: '75%', notes: 'Spring peak' },
-    'May': { multiplier: 1.15, occupancy: '80%', notes: 'Pre-summer' },
-    'June': { multiplier: 1.3, occupancy: '85%', notes: 'Summer begins' },
-    'July': { multiplier: 1.35, occupancy: '90%', notes: 'High summer season' },
-    'August': { multiplier: 1.3, occupancy: '88%', notes: 'Peak season' },
-    'September': { multiplier: 1.1, occupancy: '75%', notes: 'Fall season' },
-    'October': { multiplier: 0.95, occupancy: '70%', notes: 'Low season' },
-    'November': { multiplier: 0.9, occupancy: '65%', notes: 'Off season' },
-    'December': { multiplier: 1.2, occupancy: '80%', notes: 'Holiday season' }
+    'January': { multiplier: 1.1, occupancy: '70%', summary: 'Winter season in Austria - ski tourism' },
+    'February': { multiplier: 1.0, occupancy: '65%', summary: 'End of winter season, lower demand' },
+    'March': { multiplier: 0.9, occupancy: '65%', summary: 'Spring begins, off-season rates' },
+    'April': { multiplier: 1.0, occupancy: '75%', summary: 'Spring peak with Easter holidays' },
+    'May': { multiplier: 1.15, occupancy: '80%', summary: 'Pre-summer, increasing demand' },
+    'June': { multiplier: 1.3, occupancy: '85%', summary: 'Summer season starts' },
+    'July': { multiplier: 1.35, occupancy: '90%', summary: 'Peak summer season with high demand' },
+    'August': { multiplier: 1.3, occupancy: '88%', summary: 'Continued summer peak season' },
+    'September': { multiplier: 1.1, occupancy: '75%', summary: 'Early fall, still good tourism' },
+    'October': { multiplier: 0.95, occupancy: '70%', summary: 'Off-season rates return' },
+    'November': { multiplier: 0.9, occupancy: '65%', summary: 'Low season before winter' },
+    'December': { multiplier: 1.2, occupancy: '80%', summary: 'Holiday season and early ski season' }
   };
 
-  const monthlyPricing = months.map(month => {
-    const pattern = seasonalPatterns[month] || { multiplier: 1.0, occupancy: '70%', notes: 'Standard season' };
-    const price = Math.round((basePrice * pattern.multiplier * ratingBonus) / 5) * 5;
+  const monthlyPricing = [];
+  let totalPrice = 0;
+  let totalDays = 0;
 
-    return {
-      month,
-      recommendedPrice: price,
-      occupancy: pattern.occupancy,
-      notes: pattern.notes
-    };
-  });
+  for (let i = 0; i < months.length; i++) {
+    const monthName = months[i];
+    const monthDate = new Date(currentDate);
+    monthDate.setMonth(currentDate.getMonth() + i);
+    const year = monthDate.getFullYear();
+    const monthIndex = monthDate.getMonth() + 1;
+    const daysInMonth = new Date(year, monthIndex, 0).getDate();
 
-  const averagePrice = Math.round(
-    monthlyPricing.reduce((sum, m) => sum + m.recommendedPrice, 0) / monthlyPricing.length
-  );
+    const pattern = seasonalPatterns[monthName] || { multiplier: 1.0, occupancy: '70%', summary: 'Standard season' };
+    const baseMonthPrice = Math.round((basePrice * pattern.multiplier * ratingBonus) / 5) * 5;
+
+    const dailyPrices = [];
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, monthIndex - 1, day);
+      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+      const isWeekend = dayOfWeek === 'Friday' || dayOfWeek === 'Saturday' || dayOfWeek === 'Sunday';
+
+      // Weekend premium
+      let dayMultiplier = isWeekend ? 1.25 : 1.0;
+      let reason = isWeekend ? 'Weekend premium' : 'Weekday rate';
+
+      const dayPrice = Math.round((baseMonthPrice * dayMultiplier) / 5) * 5;
+
+      dailyPrices.push({
+        day,
+        date: `${year}-${String(monthIndex).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+        dayOfWeek,
+        price: dayPrice,
+        reason
+      });
+
+      totalPrice += dayPrice;
+      totalDays++;
+    }
+
+    monthlyPricing.push({
+      month: monthName,
+      year,
+      monthIndex,
+      monthSummary: pattern.summary,
+      dailyPrices
+    });
+  }
+
+  const averagePrice = Math.round(totalPrice / totalDays);
 
   return {
+    tourismInsights: {
+      regionType: 'Alpine tourism destination',
+      peakSeason: 'Winter (Dec-Feb) for skiing, Summer (Jun-Aug) for hiking',
+      mainAttractions: 'Ski resorts, alpine scenery, outdoor activities',
+      targetAudience: 'Families, couples, outdoor enthusiasts',
+      schoolHolidaysImpact: 'German and Austrian school holidays drive peak demand in winter and summer'
+    },
     monthlyPricing,
     averagePrice,
     recommendations: [
       '⚠️ AI анализ временно недоступен - используется базовый расчёт',
-      'Примените помесячные рекомендации по ценам',
+      'Примените посуточные рекомендации по ценам',
       'Следите за локальными событиями и корректируйте цены',
       'Добавьте профессиональные фотографии для увеличения бронирований',
       'Улучшите описание объекта с акцентом на уникальные преимущества'

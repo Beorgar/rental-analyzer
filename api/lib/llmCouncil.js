@@ -28,7 +28,7 @@ async function queryGPT4(prompt, systemPrompt) {
         { role: 'user', content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: 4000,
+      max_tokens: 8000,
     });
 
     const content = response.choices[0].message.content;
@@ -57,7 +57,7 @@ async function queryClaude(prompt, systemPrompt) {
 
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 4000,
+      max_tokens: 8000,
       system: systemPrompt,
       messages: [
         { role: 'user', content: prompt },
@@ -217,7 +217,7 @@ Output a single JSON object with the complete analysis.`;
         { role: 'user', content: synthesisPrompt },
       ],
       temperature: 0.3, // Lower temperature for more consistent synthesis
-      max_tokens: 4000,
+      max_tokens: 8000,
       response_format: { type: 'json_object' },
     });
 
